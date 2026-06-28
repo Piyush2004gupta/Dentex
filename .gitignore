@@ -29,3 +29,7 @@ backend/uploads/*
 !backend/uploads/.gitkeep
 backend/predictions/*
 !backend/predictions/.gitkeep
+
+# Large ML models weights (ignore Keras weights due to GitHub 100MB limit)
+backend/trained_models/*.keras
+

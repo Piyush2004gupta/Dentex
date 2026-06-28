@@ -1,12 +1,15 @@
 import os
 import random
 import numpy as np
+
+# Configure Keras backend to use PyTorch
+os.environ["KERAS_BACKEND"] = "torch"
+
 from app.config import settings
 
-# Safe conditional imports for torch and ultralytics to guarantee server starts 
-# even if native libraries/DLLs are missing or fail to load.
 HAS_TORCH = False
 HAS_ULTRALYTICS = False
+HAS_KERAS = False
 
 try:
     import torch
@@ -21,6 +24,12 @@ try:
 except (ImportError, OSError) as e:
     print(f"Warning: Ultralytics YOLO could not be loaded: {str(e)}. Running with fallback mock.")
 
+try:
+    import keras
+    HAS_KERAS = True
+except (ImportError, OSError) as e:
+    print(f"Warning: Keras 3 could not be loaded: {str(e)}. Running with fallback mock.")
+
 
 class AIInferenceService:
     def __init__(self):
@@ -28,41 +37,41 @@ class AIInferenceService:
         self.classifier_model = None
         self.use_mock = True
         
-        # Paths to model weights
-        self.yolo_path = os.path.join(settings.TRAINED_MODELS_DIR, "yolo_dentex.pt")
-        self.classifier_path = os.path.join(settings.TRAINED_MODELS_DIR, "classifier_dentex.pt")
+        # Paths to user's custom trained models
+        self.yolo_path = os.path.join(settings.TRAINED_MODELS_DIR, "best.pt")
+        self.classifier_path = os.path.join(settings.TRAINED_MODELS_DIR, "dentex_multitask_resnet50 (1).keras")
         
         self.initialize_models()
 
     def initialize_models(self):
         """
-        Attempts to load actual YOLOv11 and PyTorch classifier weights.
-        If weights are not found, fallback to simulated execution mode.
+        Attempts to load user's trained YOLOv11 (.pt) and ResNet50 (.keras) models.
+        Falls back to active simulation mode if weights or backend libraries fail to load.
         """
         try:
-            # Check if YOLO model exists
+            # 1. Load YOLOv11 Detection model
             if HAS_ULTRALYTICS and os.path.exists(self.yolo_path):
                 self.yolo_model = YOLO(self.yolo_path)
                 self.use_mock = False
-                print(f"Loaded YOLO detection model from {self.yolo_path}")
+                print(f"Successfully loaded YOLO detection model from: {self.yolo_path}")
             else:
-                print(f"YOLO weights not found or YOLO library not loaded. Running in SIMULATED detection mode.")
+                print(f"YOLO weights not found at {self.yolo_path} or Ultralytics library missing. Using SIMULATED detection.")
                 
-            # Check if classification model exists
-            if HAS_TORCH and os.path.exists(self.classifier_path):
-                self.classifier_model = torch.load(self.classifier_path, map_location=torch.device('cpu'))
-                self.classifier_model.eval()
-                print(f"Loaded Classification model from {self.classifier_path}")
+            # 2. Load ResNet50 Keras Classification model
+            if HAS_KERAS and os.path.exists(self.classifier_path):
+                self.classifier_model = keras.models.load_model(self.classifier_path)
+                self.use_mock = False
+                print(f"Successfully loaded ResNet50 Keras classification model from: {self.classifier_path}")
             else:
-                print(f"Classifier weights not found or PyTorch library not loaded. Running in SIMULATED classification mode.")
+                print(f"Keras weights not found at {self.classifier_path} or Keras library missing. Using SIMULATED classification.")
         except Exception as e:
-            print(f"Error loading models: {str(e)}. Falling back to simulation.")
+            print(f"Error loading custom ML models: {str(e)}. Falling back to simulation.")
             self.use_mock = True
 
     def run_detection(self, image_path: str):
         """
-        Runs YOLO detection.
-        Returns a list of detections: [{"box": [x, y, w, h], "confidence": float, "label": str}]
+        Runs custom YOLO detection on the input dental scan.
+        Returns: [{"box": [x, y, w, h], "confidence": float, "label": str}]
         """
         if not self.use_mock and self.yolo_model is not None and HAS_ULTRALYTICS:
             try:
@@ -85,10 +94,9 @@ class AIInferenceService:
                         })
                 return detections
             except Exception as e:
-                print(f"Actual YOLO inference failed: {str(e)}. Falling back to simulation.")
+                print(f"YOLO best.pt inference failed: {str(e)}. Falling back to simulation.")
         
-        # MOCK/SIMULATION LOGIC
-        # Generate anatomical teeth grid detections with a couple of diseases
+        # MOCK/SIMULATION LOGIC (Failsafe fallback)
         try:
             import cv2
             img = cv2.imread(image_path)
@@ -99,7 +107,6 @@ class AIInferenceService:
         except Exception:
             h, w = 400, 600
 
-        # We'll generate 4-6 simulated teeth locations in a row
         diseases = [
             "Dental Caries", "Cavity", "Gingivitis", 
             "Periodontitis", "Plaque", "Tartar", "Healthy Tooth"
@@ -110,20 +117,15 @@ class AIInferenceService:
         spacing = w // (num_teeth + 1)
         
         for i in range(1, num_teeth + 1):
-            # Center of the tooth
             cx = spacing * i
             cy = h // 2
             
-            # Size of the tooth box
             tw = random.randint(45, 65)
             th = random.randint(60, 90)
             
-            # Corner coords
             x = max(0, cx - tw // 2)
             y = max(0, cy - th // 2)
             
-            # Select random class
-            # Ensure at least one disease exists in the output
             if i == 1:
                 label = random.choice([d for d in diseases if d != "Healthy Tooth"])
             else:
@@ -141,44 +143,69 @@ class AIInferenceService:
 
     def run_classification(self, cropped_image_path: str, disease_label: str):
         """
-        Classifies cropped tooth severity level.
+        Classifies cropped tooth severity level using Keras ResNet50 model.
         Returns:
             severity (str),
             confidence (float),
             class_probabilities (dict)
         """
-        if not self.use_mock and self.classifier_model is not None and HAS_TORCH:
+        if not self.use_mock and self.classifier_model is not None and HAS_KERAS:
             try:
-                from PIL import Image
-                img = Image.open(cropped_image_path).convert('RGB')
-                # Standard pre-processing for ResNet/EfficientNet
-                preprocess = transforms.Compose([
-                    transforms.Resize(256),
-                    transforms.CenterCrop(224),
-                    transforms.ToTensor(),
-                    transforms.Normalize(
-                        mean=[0.485, 0.456, 0.406],
-                        std=[0.229, 0.224, 0.225]
-                    )
-                ])
-                tensor = preprocess(img).unsqueeze(0)
+                import cv2
                 
-                with torch.no_grad():
-                    outputs = self.classifier_model(tensor)
-                    probabilities = torch.softmax(outputs, dim=1)[0].tolist()
-                    
+                # Load crop visual
+                img = cv2.imread(cropped_image_path)
+                if img is None:
+                    raise ValueError("Cropped image could not be loaded by OpenCV.")
+                
+                # Preprocess cropped image to ResNet50 input dimensions
+                img_resized = cv2.resize(img, (224, 224))
+                img_rgb = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+                
+                # Normalize pixels to float32 [0, 1]
+                img_normalized = img_rgb.astype(np.float32) / 255.0
+                input_tensor = np.expand_dims(img_normalized, axis=0) # shape (1, 224, 224, 3)
+                
+                # Execute Keras model
+                preds = self.classifier_model(input_tensor)
+                
+                # Handle Keras Multitask lists outputs
+                if isinstance(preds, list):
+                    primary_preds = None
+                    for p in preds:
+                        p_numpy = p.numpy() if hasattr(p, "numpy") else np.array(p)
+                        if p_numpy.shape[-1] == 4:
+                            primary_preds = p_numpy[0]
+                            break
+                    if primary_preds is None:
+                        primary_preds = preds[0].numpy()[0] if hasattr(preds[0], "numpy") else np.array(preds[0])[0]
+                else:
+                    primary_preds = preds.numpy()[0] if hasattr(preds, "numpy") else np.array(preds)[0]
+                
                 classes = ["Healthy", "Mild", "Moderate", "Severe"]
-                pred_idx = np.argmax(probabilities)
                 
-                prob_dict = {classes[idx]: round(probabilities[idx], 4) for idx in range(len(classes))}
-                return classes[pred_idx], round(probabilities[pred_idx] * 100, 2), prob_dict
+                if len(primary_preds) == 4:
+                    # Logits vs Softmax handling
+                    if np.abs(np.sum(primary_preds) - 1.0) > 0.1:
+                        e_x = np.exp(primary_preds - np.max(primary_preds))
+                        probabilities = e_x / e_x.sum(axis=0)
+                    else:
+                        probabilities = primary_preds
+                        
+                    pred_idx = np.argmax(probabilities)
+                    severity = classes[pred_idx]
+                    confidence = round(float(probabilities[pred_idx]) * 100, 2)
+                    prob_dict = {classes[idx]: round(float(probabilities[idx]), 4) for idx in range(4)}
+                else:
+                    raise ValueError(f"Unexpected classifier output dim: {len(primary_preds)}")
+                
+                return severity, confidence, prob_dict
             except Exception as e:
-                print(f"Actual Classifier inference failed: {str(e)}. Falling back to simulation.")
+                print(f"Keras classification inference failed: {str(e)}. Falling back to simulation.")
 
         # MOCK/SIMULATION LOGIC
         classes = ["Healthy", "Mild", "Moderate", "Severe"]
         
-        # If the detected label was "Healthy Tooth", set Healthy prob high
         if disease_label == "Healthy Tooth":
             prob_healthy = random.uniform(0.92, 0.98)
             remaining = 1.0 - prob_healthy
@@ -195,10 +222,7 @@ class AIInferenceService:
             severity = "Healthy"
             confidence = round(prob_healthy * 100, 1)
         else:
-            # Its a disease, simulate severity
             severity = random.choice(["Mild", "Moderate", "Severe"])
-            
-            # Base probability for the chosen class
             p_main = random.uniform(0.70, 0.95)
             remaining = 1.0 - p_main
             
@@ -259,7 +283,6 @@ class AIInferenceService:
             }
         }
         
-        # Fallback recommendations if class not in list
         return recommendations.get(disease, {}).get(
             severity, "Consult a dental professional for a comprehensive evaluation."
         )
