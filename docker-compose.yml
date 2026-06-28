@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: dentex-db
+    restart: always
+    environment:
+      POSTGRES_USER: dentex_admin
+      POSTGRES_PASSWORD: dentex_secure_db_password_992
+      POSTGRES_DB: dentex_database
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+    container_name: dentex-backend
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://dentex_admin:dentex_secure_db_password_992@db:5432/dentex_database
+      - SECRET_KEY=dentex_super_secret_session_token_key_change_me
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/uploads:/workspace/uploads
+      - ./backend/predictions:/workspace/predictions
+      - ./backend/trained_models:/workspace/trained_models
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: dentex-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
