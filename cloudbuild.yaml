@@ -1,0 +1,70 @@
+steps:
+  # Build Backend
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'build',
+        '-t',
+        'asia-south1-docker.pkg.dev/dentex-500915/dentex/backend:$SHORT_SHA',
+        './backend'
+      ]
+
+  # Push Backend
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'push',
+        'asia-south1-docker.pkg.dev/dentex-500915/dentex/backend:$SHORT_SHA'
+      ]
+
+  # Deploy Backend
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      [
+        'run',
+        'deploy',
+        'dentex-backend',
+        '--image',
+        'asia-south1-docker.pkg.dev/dentex-500915/dentex/backend:$SHORT_SHA',
+        '--region',
+        'asia-south1',
+        '--platform',
+        'managed',
+        '--quiet'
+      ]
+
+  # Build Frontend
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'build',
+        '-t',
+        'asia-south1-docker.pkg.dev/dentex-500915/dentex/frontend:$SHORT_SHA',
+        './frontend'
+      ]
+
+  # Push Frontend
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'push',
+        'asia-south1-docker.pkg.dev/dentex-500915/dentex/frontend:$SHORT_SHA'
+      ]
+
+  # Deploy Frontend
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      [
+        'run',
+        'deploy',
+        'dentex-frontend',
+        '--image',
+        'asia-south1-docker.pkg.dev/dentex-500915/dentex/frontend:$SHORT_SHA',
+        '--region',
+        'asia-south1',
+        '--platform',
+        'managed',
+        '--quiet'
+      ]
