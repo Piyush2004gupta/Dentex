@@ -30,4 +30,5 @@ backend/uploads/*
 backend/predictions/*
 !backend/predictions/.gitkeep
 
-
+# Database stores
+backend/app/database/users.json

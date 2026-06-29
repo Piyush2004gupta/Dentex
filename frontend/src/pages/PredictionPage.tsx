@@ -3,7 +3,7 @@ import api from '../services/api';
 import PredictionCanvas from '../components/PredictionCanvas';
 import { 
   Camera, UploadCloud, ShieldAlert, Sparkles, AlertCircle, 
-  HelpCircle, Printer, Image as ImageIcon, Flame
+  HelpCircle, Image as ImageIcon, Flame, Grid3x3, MapPin
 } from 'lucide-react';
 
 const PredictionPage: React.FC = () => {
@@ -123,11 +123,6 @@ const PredictionPage: React.FC = () => {
     }
   };
 
-  // Download printable PDF report
-  const downloadReport = () => {
-    if (!result) return;
-    window.open(`http://localhost:8000/api/predictions/prediction/${result.id}/report`, '_blank');
-  };
 
   return (
     <div className="flex-1 p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-4rem)]">
@@ -242,14 +237,6 @@ const PredictionPage: React.FC = () => {
                     <Flame size={14} />
                     <span>{showGradCam ? 'Hide Heatmap' : 'View Grad-CAM Heatmap'}</span>
                   </button>
-
-                  <button
-                    onClick={downloadReport}
-                    className="inline-flex items-center gap-1 rounded-lg border border-brand-200 dark:border-brand-850 px-3 py-2 text-xs font-bold text-brand-600 dark:text-brand-400 hover:bg-brand-50/50 dark:hover:bg-brand-950/25 transition-all"
-                  >
-                    <Printer size={14} />
-                    <span>Print PDF Report</span>
-                  </button>
                 </div>
               )}
             </div>
@@ -278,20 +265,10 @@ const PredictionPage: React.FC = () => {
               
               {/* Primary diagnosis */}
               <div className="glass-card p-6 rounded-xl space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">AI Diagnostic Output</h3>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    result.severity === 'Healthy' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20' :
-                    result.severity === 'Mild' ? 'bg-yellow-50 text-yellow-600 dark:bg-yellow-950/20' :
-                    result.severity === 'Moderate' ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20' :
-                    'bg-rose-50 text-rose-600 dark:bg-rose-950/20'
-                  }`}>
-                    {result.severity}
-                  </span>
-                </div>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">AI Diagnostic Output</h3>
 
                 <div className="space-y-1">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Primary Condition</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Detected Condition</span>
                   <h4 className="text-xl font-bold dark:text-white">{result.disease}</h4>
                   <p className="text-xs text-slate-400">AI confidence score: {result.confidence}%</p>
                 </div>
@@ -308,20 +285,42 @@ const PredictionPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Treatment recommendations */}
-              <div className="glass-card p-6 rounded-xl space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Clinical Next Steps</h4>
-                <div className="p-4 rounded-lg bg-brand-50/50 dark:bg-slate-900 border-l-4 border-brand-500">
-                  <p className="text-xs leading-5 text-slate-700 dark:text-slate-300 font-medium">
-                    {result.recommendation}
-                  </p>
+              {/* Multitask model outputs: Tooth Position + Quadrant */}
+              {(result.tooth_number || result.quadrant) && (
+                <div className="glass-card p-5 rounded-xl">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Multitask Model Localisation</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {result.tooth_number && (
+                      <div className="flex items-center gap-3 rounded-lg bg-brand-50/40 dark:bg-brand-950/10 p-3 border border-brand-100/40 dark:border-brand-900/20">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 dark:bg-brand-900/40 text-brand-500">
+                          <Grid3x3 size={16} />
+                        </div>
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest text-slate-400 font-bold">Enumeration</p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-white">{result.tooth_number}</p>
+                        </div>
+                      </div>
+                    )}
+                    {result.quadrant && (
+                      <div className="flex items-center gap-3 rounded-lg bg-cyan-50/40 dark:bg-cyan-950/10 p-3 border border-cyan-100/40 dark:border-cyan-900/20">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-100 dark:bg-cyan-900/40 text-cyan-500">
+                          <MapPin size={16} />
+                        </div>
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest text-slate-400 font-bold">Quadrant</p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-white">{result.quadrant}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
+
 
               {/* Class probabilities details */}
               {result.class_probabilities && (
                 <div className="glass-card p-6 rounded-xl space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Severity Probabilities</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Disease Probabilities</h4>
                   <div className="space-y-2">
                     {Object.entries(result.class_probabilities).map(([className, prob]: any) => (
                       <div key={className} className="space-y-1">
@@ -332,10 +331,11 @@ const PredictionPage: React.FC = () => {
                         <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                           <div 
                             className={`h-full rounded-full transition-all duration-500 ${
-                              className === 'Healthy' ? 'bg-emerald-500' :
-                              className === 'Mild' ? 'bg-yellow-500' :
-                              className === 'Moderate' ? 'bg-orange-500' :
-                              'bg-rose-500'
+                              className === 'Caries'            ? 'bg-yellow-500' :
+                              className === 'Deep Caries'       ? 'bg-orange-500' :
+                              className === 'Periapical Lesion' ? 'bg-rose-500' :
+                              className === 'Impacted Tooth'    ? 'bg-purple-500' :
+                              'bg-brand-500'
                             }`}
                             style={{ width: `${prob * 100}%` }}
                           />
@@ -351,7 +351,7 @@ const PredictionPage: React.FC = () => {
             <div className="glass-card p-6 rounded-xl text-center py-16 text-slate-400 space-y-2">
               <ImageIcon size={32} className="mx-auto text-slate-300 dark:text-slate-700" />
               <p className="text-sm font-semibold">Awaiting Diagnostic Data</p>
-              <p className="text-xs max-w-xs mx-auto">Upload an oral scan and run diagnostics. The YOLO model predictions and recommendations will compile here.</p>
+              <p className="text-xs max-w-xs mx-auto">Upload an oral scan and run diagnostics. Detection results will appear here.</p>
             </div>
           )}
         </div>

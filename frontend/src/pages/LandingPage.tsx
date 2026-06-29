@@ -44,7 +44,7 @@ const LandingPage: React.FC = () => {
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link
-                to="/register"
+                to="/dashboard"
                 className="rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 px-6 py-3.5 text-base font-bold text-white shadow-lg shadow-brand-500/20 hover:from-brand-500 hover:to-brand-400 hover:shadow-xl hover:shadow-brand-500/30 transition-all duration-300"
               >
                 Get Started for Free

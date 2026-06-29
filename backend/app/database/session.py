@@ -1,24 +1,14 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
-from app.config import settings
+# Database session is bypassed. No connection pool or SQLAlchemy engines are initialized.
 
-# For SQLite compatibility with concurrent requests
-connect_args = {}
-if settings.DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
+class DummyMetadata:
+    def create_all(self, *args, **kwargs):
+        pass
 
-engine = create_engine(
-    settings.DATABASE_URL,
-    connect_args=connect_args
-)
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base = declarative_base()
+class Base:
+    metadata = DummyMetadata()
 
 def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    """
+    Stub dependency yielding None, since database operations are handled in-memory.
+    """
+    yield None

@@ -1,11 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 
-interface User {
+export interface User {
   id: number;
   username: string;
   email: string;
   role: string;
+  name: string;
+  age: number;
+  phone_no: string;
+  gender: string;
+  consent_terms: boolean;
+  consent_not_professional_ai: boolean;
+  consent_store_images: boolean;
   created_at: string;
 }
 
@@ -22,27 +29,41 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem('dentex_user');
+    if (savedUser) {
+      try {
+        return JSON.parse(savedUser);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+  const [token, setToken] = useState<string | null>(() => {
+    return localStorage.getItem('dentex_token');
+  });
   const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    // Check for stored credentials
-    const storedToken = localStorage.getItem('dentex_token');
-    const storedUser = localStorage.getItem('dentex_user');
+  const logout = () => {
+    localStorage.removeItem('dentex_token');
+    localStorage.removeItem('dentex_user');
+    setToken(null);
+    setUser(null);
+  };
 
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-      
-      // Verify token is still valid by requesting profile
+  useEffect(() => {
+    if (token) {
       api.get('/profile')
         .then((res) => {
           setUser(res.data);
           localStorage.setItem('dentex_user', JSON.stringify(res.data));
         })
-        .catch(() => {
-          logout();
+        .catch((err) => {
+          console.warn('Backend sync failed, using local fallback:', err);
+          if (err.response?.status === 401) {
+            logout();
+          }
         })
         .finally(() => {
           setLoading(false);
@@ -50,49 +71,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [token]);
 
   const login = async (credentials: any) => {
-    setLoading(true);
     try {
-      const response = await api.post('/auth/login', credentials);
-      const { access_token, user: userData } = response.data;
-      
+      const res = await api.post('/auth/login', credentials);
+      const { access_token, user: loggedUser } = res.data;
       localStorage.setItem('dentex_token', access_token);
-      localStorage.setItem('dentex_user', JSON.stringify(userData));
-      
+      localStorage.setItem('dentex_user', JSON.stringify(loggedUser));
       setToken(access_token);
-      setUser(userData);
-    } catch (err) {
-      throw err;
-    } finally {
-      setLoading(false);
+      setUser(loggedUser);
+    } catch (err: any) {
+      throw new Error(err.response?.data?.detail || 'Login failed');
     }
   };
 
   const register = async (userData: any) => {
-    setLoading(true);
     try {
-      const response = await api.post('/auth/register', userData);
-      const { access_token, user: registeredUser } = response.data;
-      
-      localStorage.setItem('dentex_token', access_token);
-      localStorage.setItem('dentex_user', JSON.stringify(registeredUser));
-      
-      setToken(access_token);
-      setUser(registeredUser);
-    } catch (err) {
-      throw err;
-    } finally {
-      setLoading(false);
+      await api.post('/auth/register', userData);
+      // Auto login
+      await login({ email: userData.email, password: userData.password });
+    } catch (err: any) {
+      throw new Error(err.response?.data?.detail || 'Registration failed');
     }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('dentex_token');
-    localStorage.removeItem('dentex_user');
-    setToken(null);
-    setUser(null);
   };
 
   const isAdmin = user?.role === 'admin';
@@ -111,3 +112,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

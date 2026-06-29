@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Sun, Moon, LogOut, Menu, X, Shield, Activity, User as UserIcon } from 'lucide-react';
+import { Sun, Moon, Menu, X, Activity } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const [darkMode, setDarkMode] = useState<boolean>(() => {
-    return localStorage.getItem('theme') === 'dark' || 
+    return localStorage.getItem('theme') === 'dark' ||
       (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -23,19 +22,14 @@ const Navbar: React.FC = () => {
     }
   }, [darkMode]);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-
   const isAuthPage = ['/login', '/register'].includes(location.pathname);
-  const isDashboard = ['/dashboard', '/predict', '/history', '/profile', '/admin'].some(path => location.pathname.startsWith(path));
+  const isDashboard = ['/dashboard', '/predict', '/history', '/profile'].some(path => location.pathname.startsWith(path));
 
   return (
     <nav className="sticky top-0 z-50 w-full glass-panel border-b border-slate-200/50 dark:border-slate-800/30 transition-all duration-300">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          
+
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2">
@@ -68,7 +62,22 @@ const Navbar: React.FC = () => {
               {darkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
 
-            {user ? (
+            {!user ? (
+              <div className="flex items-center gap-4">
+                <Link
+                  to="/login"
+                  className="text-sm font-semibold text-slate-600 hover:text-brand-500 dark:text-slate-300 dark:hover:text-brand-400 transition-colors"
+                >
+                  Log In
+                </Link>
+                <Link
+                  to="/register"
+                  className="rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 px-4 py-2 text-xs font-bold text-white shadow-md shadow-brand-500/15 hover:from-brand-500 hover:to-brand-400 active:scale-[0.98] transition-all"
+                >
+                  Sign Up
+                </Link>
+              </div>
+            ) : (
               <div className="flex items-center gap-4">
                 {/* Dashboard Shortcut link */}
                 {!isDashboard && (
@@ -91,26 +100,14 @@ const Navbar: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Logout Button */}
                 <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all"
+                  onClick={logout}
+                  className="text-xs font-bold text-rose-600 hover:text-rose-500 dark:text-rose-450 dark:hover:text-rose-450 hover:underline transition-all"
                 >
-                  <LogOut size={16} />
-                  <span>Logout</span>
+                  Log Out
                 </button>
               </div>
-            ) : (
-              !isAuthPage && (
-                <div className="flex items-center gap-3">
-                  <Link to="/login" className="text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-brand-500 transition-colors">Sign In</Link>
-                  <Link
-                    to="/register"
-                    className="rounded-lg bg-gradient-to-r from-brand-600 to-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-brand-500/20 hover:from-brand-500 hover:to-brand-400 hover:shadow-lg hover:shadow-brand-500/30 transition-all duration-300"
-                  >
-                    Register
-                  </Link>
-                </div>
-              )
             )}
           </div>
 
@@ -146,7 +143,7 @@ const Navbar: React.FC = () => {
             </div>
           )}
 
-          {user ? (
+          {user && (
             <div className="flex flex-col gap-3 border-t border-slate-200/50 dark:border-slate-800/30 pt-3">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500 text-white font-bold">
@@ -158,30 +155,7 @@ const Navbar: React.FC = () => {
                 </div>
               </div>
               <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="text-sm font-semibold text-brand-600 dark:text-brand-400">Dashboard</Link>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  handleLogout();
-                }}
-                className="flex items-center gap-1.5 w-full text-left text-sm font-semibold text-rose-600 py-1"
-              >
-                <LogOut size={16} />
-                <span>Logout</span>
-              </button>
             </div>
-          ) : (
-            !isAuthPage && (
-              <div className="flex flex-col gap-2 border-t border-slate-200/50 dark:border-slate-800/30 pt-3">
-                <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="text-sm font-semibold text-slate-700 dark:text-slate-200 py-2">Sign In</Link>
-                <Link
-                  to="/register"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-lg bg-brand-500 py-2 text-center text-sm font-semibold text-white"
-                >
-                  Register
-                </Link>
-              </div>
-            )
           )}
         </div>
       )}
