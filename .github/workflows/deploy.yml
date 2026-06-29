@@ -1,15 +1,15 @@
-name: Path-Based Deploy to Amazon ECR
+name: Deploy to AWS
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'frontend/**'
-      - 'backend/**'
+  workflow_run:
+    workflows: ["Continuous Integration"]
+    types:
+      - completed
 
 jobs:
   changes:
     name: Detect Changed Paths
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Filter Paths
         id: filter
@@ -36,6 +38,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -57,16 +61,6 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./frontend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      # ==========================================
-      # CONTAINER RESTART / DEPLOYMENT OPTIONS
-      # ==========================================
-      
-      # Option 1: Amazon ECS (if deploying to ECS Service)
-      # - name: Force ECS Service New Deployment
-      #   run: |
-      #     aws ecs update-service --cluster ${{ secrets.ECS_CLUSTER_NAME }} --service ${{ secrets.ECS_SERVICE_FRONTEND }} --force-new-deployment
-
-      # Option 2: Self-hosted EC2 Instance via SSH (Docker Compose Pull/Up)
       - name: Deploy Frontend via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -88,6 +82,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -109,16 +105,6 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      # ==========================================
-      # CONTAINER RESTART / DEPLOYMENT OPTIONS
-      # ==========================================
-
-      # Option 1: Amazon ECS (if deploying to ECS Service)
-      # - name: Force ECS Service New Deployment
-      #   run: |
-      #     aws ecs update-service --cluster ${{ secrets.ECS_CLUSTER_NAME }} --service ${{ secrets.ECS_SERVICE_BACKEND }} --force-new-deployment
-
-      # Option 2: Self-hosted EC2 Instance via SSH (Docker Compose Pull/Up)
       - name: Deploy Backend via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
