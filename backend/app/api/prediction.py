@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Optional
 
 from app.database.models import User, Prediction
-from app.auth.jwt import get_current_user
+from app.auth.jwt import get_current_user, get_current_user_optional
 from app.config import settings
 from app.utils.image_processing import check_image_blur, check_image_brightness, crop_detected_tooth
 from app.services.ai_inference import ai_inference_service
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/predictions", tags=["Predictions"])
 @router.post("/predict")
 async def predict_dental_disease(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     if not file.content_type.startswith("image/"):
         raise HTTPException(
@@ -82,7 +82,7 @@ async def predict_dental_disease(
 
     db_prediction = Prediction(
         id=next_id,
-        user_id=current_user.id,
+        user_id=current_user.id if current_user else None,
         filename=file.filename,
         filepath=upload_filepath,
         disease=disease,
@@ -149,13 +149,14 @@ def get_prediction_history(
     }
 
 @router.get("/prediction/{id}")
-def get_prediction_detail(id: int, current_user: User = Depends(get_current_user)):
+def get_prediction_detail(id: int, current_user: Optional[User] = Depends(get_current_user_optional)):
     from app.database.models import predictions_store
     prediction = next((p for p in predictions_store if p.id == id), None)
     if not prediction:
         raise HTTPException(status_code=404, detail="Prediction record not found.")
-    if prediction.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to view this prediction record.")
+    if prediction.user_id is not None:
+        if not current_user or prediction.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to view this prediction record.")
     return prediction
 
 @router.delete("/prediction/{id}", status_code=status.HTTP_200_OK)

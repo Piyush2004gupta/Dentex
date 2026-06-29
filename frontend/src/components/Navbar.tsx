@@ -65,6 +65,13 @@ const Navbar: React.FC = () => {
             {!user ? (
               <div className="flex items-center gap-4">
                 <Link
+                  to="/predict"
+                  className="text-sm font-semibold text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-350 transition-colors"
+                >
+                  Try AI Scanner
+                </Link>
+                <span className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
+                <Link
                   to="/login"
                   className="text-sm font-semibold text-slate-600 hover:text-brand-500 dark:text-slate-300 dark:hover:text-brand-400 transition-colors"
                 >
@@ -140,6 +147,16 @@ const Navbar: React.FC = () => {
               <a href="#features" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-slate-600 dark:text-slate-300 py-1.5">Features</a>
               <a href="#stats" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-slate-600 dark:text-slate-300 py-1.5">Statistics</a>
               <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-slate-600 dark:text-slate-300 py-1.5">FAQ</a>
+            </div>
+          )}
+
+          {!user && (
+            <div className="flex flex-col gap-3 border-t border-slate-200/50 dark:border-slate-800/30 pt-3">
+              <Link to="/predict" onClick={() => setMobileMenuOpen(false)} className="text-sm font-semibold text-brand-600 dark:text-brand-400">Try AI Scanner</Link>
+              <div className="flex gap-4 pt-1">
+                <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-slate-600 dark:text-slate-350">Log In</Link>
+                <Link to="/register" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-slate-600 dark:text-slate-350">Sign Up</Link>
+              </div>
             </div>
           )}
 
