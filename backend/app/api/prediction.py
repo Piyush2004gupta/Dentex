@@ -5,6 +5,7 @@ import shutil
 from datetime import datetime
 from typing import Optional
 
+from fastapi.responses import FileResponse
 from app.database.models import User, Prediction
 from app.auth.jwt import get_current_user, get_current_user_optional
 from app.config import settings
@@ -21,6 +22,19 @@ def _unpack_classification(result):
     return disease_type, confidence, probs, tooth_number, quadrant
 
 router = APIRouter(prefix="/predictions", tags=["Predictions"])
+
+@router.get("/prediction/{id}/image")
+def get_prediction_image(id: int, current_user: Optional[User] = Depends(get_current_user_optional)):
+    from app.database.models import predictions_store
+    prediction = next((p for p in predictions_store if p.id == id), None)
+    if not prediction:
+        raise HTTPException(status_code=404, detail="Prediction record not found.")
+    if prediction.user_id is not None:
+        if not current_user or prediction.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to view this prediction record.")
+    if not os.path.exists(prediction.filepath):
+        raise HTTPException(status_code=404, detail="Image file not found on disk.")
+    return FileResponse(prediction.filepath)
 
 @router.post("/predict")
 async def predict_dental_disease(
