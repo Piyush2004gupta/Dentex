@@ -50,12 +50,12 @@ const PredictionCanvas: React.FC<PredictionCanvasProps> = ({ imageUrl, detection
   };
 
   return (
-    <div ref={containerRef} className="relative w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+    <div ref={containerRef} className="relative mx-auto w-fit overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
       <img
         ref={imageRef}
         src={imageUrl}
         alt="Dental Scan Preview"
-        className="block mx-auto max-h-[450px] w-auto object-contain select-none"
+        className="block max-h-[450px] w-auto object-contain select-none"
         onLoad={calculateScale}
       />
       {imageLoaded &&

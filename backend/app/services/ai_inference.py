@@ -162,8 +162,8 @@ class AIInferenceService:
         for i in range(1, num_teeth + 1):
             cx = spacing * i
             cy = h // 2
-            tw = random.randint(45, 65)
-            th = random.randint(60, 90)
+            tw = int(w * random.uniform(0.06, 0.08))
+            th = int(h * random.uniform(0.18, 0.22))
             x  = max(0, cx - tw // 2)
             y  = max(0, cy - th // 2)
             label = (random.choice([d for d in diseases if d != "Healthy Tooth"])
