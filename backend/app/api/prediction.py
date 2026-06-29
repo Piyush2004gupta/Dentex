@@ -32,9 +32,21 @@ def get_prediction_image(id: int, current_user: Optional[User] = Depends(get_cur
     if prediction.user_id is not None:
         if not current_user or prediction.user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Not authorized to view this prediction record.")
-    if not os.path.exists(prediction.filepath):
-        raise HTTPException(status_code=404, detail="Image file not found on disk.")
-    return FileResponse(prediction.filepath)
+    
+    # Check if the path is a GCS path
+    if prediction.filepath.startswith("predicattion/"):
+        from app.services.gcs import gcs_service
+        img_bytes = gcs_service.download_file_to_bytes(prediction.filepath)
+        if img_bytes is None:
+            raise HTTPException(status_code=404, detail="Image not found in GCS bucket.")
+        from fastapi.responses import StreamingResponse
+        from io import BytesIO
+        return StreamingResponse(BytesIO(img_bytes), media_type="image/jpeg")
+    else:
+        # Fallback to local files
+        if not os.path.exists(prediction.filepath):
+            raise HTTPException(status_code=404, detail="Image file not found on disk.")
+        return FileResponse(prediction.filepath)
 
 @router.post("/predict")
 async def predict_dental_disease(
@@ -90,15 +102,34 @@ async def predict_dental_disease(
         if disease_type is not None:
             disease = disease_type
 
+        # Clean up local cropped file after classification
+        if crop_success:
+            try:
+                os.remove(crop_filepath)
+            except Exception:
+                pass
+
     # Save to in-memory store
     from app.database.models import predictions_store
     next_id = max([p.id for p in predictions_store]) + 1 if predictions_store else 1
+
+    # Upload to Google Cloud Storage (GCS)
+    from app.services.gcs import gcs_service
+    gcs_path = f"predicattion/{unique_filename}"
+    gcs_uploaded = gcs_service.upload_file(upload_filepath, gcs_path)
+    
+    final_filepath = gcs_path if gcs_uploaded else upload_filepath
+    if gcs_uploaded:
+        try:
+            os.remove(upload_filepath)
+        except Exception:
+            pass
 
     db_prediction = Prediction(
         id=next_id,
         user_id=current_user.id if current_user else None,
         filename=file.filename,
-        filepath=upload_filepath,
+        filepath=final_filepath,
         disease=disease,
         confidence=confidence,
         bounding_box=bounding_box,
