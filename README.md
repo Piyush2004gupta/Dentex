@@ -90,4 +90,4 @@ docker compose up --build -d
 ```bash
 docker compose down
 ```
-This stops and cleans up the active containers and networks to prevent file locks.
+
