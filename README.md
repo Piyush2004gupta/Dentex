@@ -1,6 +1,6 @@
-# Dentex Project Setup & Deployment Guide
+# DENTEX Project Setup & Deployment Guide
 
-This document provides a complete guide to the Dentex project configuration, the Git version control steps taken, the Docker architecture (images and containers), and the troubleshooting steps resolved during the setup.
+This document provides a complete guide to the DENTEX project configuration, the Git version control steps taken, the Docker architecture (images and containers), and the troubleshooting steps resolved during the setup.
 
 ---
 

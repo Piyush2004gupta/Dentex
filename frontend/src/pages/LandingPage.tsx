@@ -5,16 +5,16 @@ import { Activity, ShieldAlert, Cpu, Heart, CheckCircle2, ChevronRight, BarChart
 const LandingPage: React.FC = () => {
   const faqs = [
     {
-      q: "How does Dentex detect dental diseases?",
-      a: "Dentex uses a state-of-the-art dual-stage AI pipeline. First, a YOLO object detection model scans the image to identify teeth and isolate regions with anomalies (such as caries, cavities, gingivitis, or tartar). Second, a deep learning classification model analyzes the cropped tooth area to determine the severity classification (Mild, Moderate, Severe)."
+      q: "How does DENTEX detect dental diseases?",
+      a: "DENTEX uses a state-of-the-art dual-stage AI pipeline. First, a YOLO object detection model scans the image to identify teeth and isolate regions with anomalies (such as caries, cavities, gingivitis, or tartar). Second, a deep learning classification model analyzes the cropped tooth area to determine the severity classification (Mild, Moderate, Severe)."
     },
     {
       q: "What types of images can I upload?",
       a: "The system is trained to process standard oral photography, intraoral scans, and dental X-rays. For optimal detection performance, ensure the image is well-lit and clear."
     },
     {
-      q: "Is Dentex a replacement for a dentist?",
-      a: "No. Dentex is designed as an AI-powered helper tool for screening and education. It does not replace professional clinical examinations. All diagnoses and treatment plans should be verified by a certified dental professional."
+      q: "Is DENTEX a replacement for a dentist?",
+      a: "No. DENTEX is designed as an AI-powered helper tool for screening and education. It does not replace professional clinical examinations. All diagnoses and treatment plans should be verified by a certified dental professional."
     },
     {
       q: "How secure is my data?",
@@ -198,9 +198,9 @@ const LandingPage: React.FC = () => {
         <div className="mx-auto max-w-7xl px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 flex items-center justify-center bg-brand-500 text-white rounded-lg font-bold">D</div>
-            <span className="text-sm font-semibold text-white">Dentex AI</span>
+            <span className="text-sm font-semibold text-white">DENTEX AI</span>
           </div>
-          <p className="text-xs">&copy; 2026 Dentex Platform. All rights reserved.</p>
+          <p className="text-xs">&copy; 2026 DENTEX Platform. All rights reserved.</p>
         </div>
       </footer>
 

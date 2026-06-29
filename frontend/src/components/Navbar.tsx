@@ -37,7 +37,7 @@ const Navbar: React.FC = () => {
                 <Activity size={22} className="animate-pulse" />
               </div>
               <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-brand-600 to-brand-400 bg-clip-text text-transparent dark:from-brand-400 dark:to-cyan-400">
-                Dentex
+                DENTEX
               </span>
             </Link>
           </div>

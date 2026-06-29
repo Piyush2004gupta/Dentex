@@ -352,7 +352,7 @@ const RegisterPage: React.FC = () => {
                 Effective Date: June 29, 2026
               </p>
               <p>
-                Welcome to Dentex, an AI-powered dental disease detection platform developed by <strong>HOPELABSAI Solution Private Limited</strong>. By registering an account and ticking the consent options, you agree to be bound by the following Terms & Conditions.
+                Welcome to DENTEX, an AI-powered dental disease detection platform developed by <strong>HOPELABSAI Solution Private Limited</strong>. By registering an account and ticking the consent options, you agree to be bound by the following Terms & Conditions.
               </p>
               
               <h4 className="font-bold text-slate-900 dark:text-slate-200 pt-2 border-t border-slate-150 dark:border-slate-800/50">

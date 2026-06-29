@@ -113,7 +113,7 @@ const ProfilePage: React.FC = () => {
           </div>
 
           <div className="glass-card p-6 rounded-xl space-y-4">
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Dentex Platform Disclaimers</h3>
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">DENTEX Platform Disclaimers</h3>
             <div className="flex items-start gap-2.5 text-xs text-slate-500 leading-5">
               <ClipboardList size={16} className="shrink-0 mt-0.5 text-brand-500" />
               <p>

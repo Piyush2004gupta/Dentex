@@ -53,7 +53,7 @@ const LoginPage: React.FC = () => {
             Welcome Back
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            Sign in to access your Dentex dental health diagnostics dashboard
+            Sign in to access your DENTEX dental health diagnostics dashboard
           </p>
         </div>
 
