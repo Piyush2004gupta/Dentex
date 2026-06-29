@@ -67,16 +67,18 @@ jobs:
       #     aws ecs update-service --cluster ${{ secrets.ECS_CLUSTER_NAME }} --service ${{ secrets.ECS_SERVICE_FRONTEND }} --force-new-deployment
 
       # Option 2: Self-hosted EC2 Instance via SSH (Docker Compose Pull/Up)
-      # - name: Deploy Frontend via SSH
-      #   uses: appleboy/ssh-action@v1.0.3
-      #   with:
-      #     host: ${{ secrets.EC2_HOST }}
-      #     username: ${{ secrets.EC2_USERNAME }}
-      #     key: ${{ secrets.EC2_SSH_KEY }}
-      #     script: |
-      #       cd ~/Dentex
-      #       docker compose pull frontend
-      #       docker compose up -d --no-deps frontend
+      - name: Deploy Frontend via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME || 'ubuntu' }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/Dentex
+            export AWS_ECR_REGISTRY="${{ secrets.AWS_ECR_REGISTRY }}"
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_REGISTRY }}
+            docker compose pull frontend
+            docker compose up -d --no-deps frontend
 
   deploy-backend:
     name: Build & Deploy Backend
@@ -117,13 +119,15 @@ jobs:
       #     aws ecs update-service --cluster ${{ secrets.ECS_CLUSTER_NAME }} --service ${{ secrets.ECS_SERVICE_BACKEND }} --force-new-deployment
 
       # Option 2: Self-hosted EC2 Instance via SSH (Docker Compose Pull/Up)
-      # - name: Deploy Backend via SSH
-      #   uses: appleboy/ssh-action@v1.0.3
-      #   with:
-      #     host: ${{ secrets.EC2_HOST }}
-      #     username: ${{ secrets.EC2_USERNAME }}
-      #     key: ${{ secrets.EC2_SSH_KEY }}
-      #     script: |
-      #       cd ~/Dentex
-      #       docker compose pull backend
-      #       docker compose up -d --no-deps backend
+      - name: Deploy Backend via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME || 'ubuntu' }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/Dentex
+            export AWS_ECR_REGISTRY="${{ secrets.AWS_ECR_REGISTRY }}"
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_REGISTRY }}
+            docker compose pull backend
+            docker compose up -d --no-deps backend
