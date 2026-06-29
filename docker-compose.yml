@@ -4,7 +4,7 @@ services:
   backend:
     build:
       context: ./backend
-    image: ${AWS_ECR_REGISTRY:-123456789012.dkr.ecr.us-east-1.amazonaws.com}/dentex-backend:latest
+    image: ${REGISTRY_URL:-us-central1-docker.pkg.dev/my-project/dentex-repo}/dentex-backend:latest
     container_name: dentex-backend
     restart: always
     environment:
@@ -19,7 +19,7 @@ services:
   frontend:
     build:
       context: ./frontend
-    image: ${AWS_ECR_REGISTRY:-123456789012.dkr.ecr.us-east-1.amazonaws.com}/dentex-frontend:latest
+    image: ${REGISTRY_URL:-us-central1-docker.pkg.dev/my-project/dentex-repo}/dentex-frontend:latest
     container_name: dentex-frontend
     restart: always
     ports:

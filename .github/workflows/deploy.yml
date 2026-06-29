@@ -1,4 +1,4 @@
-name: Deploy to AWS
+name: Deploy to AWS (GCP)
 
 on:
   workflow_run:
@@ -13,65 +13,68 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker Client
+        run: |
+          gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev --quiet
 
       ############################
-      # Build Frontend
+      # Build & Push Frontend
       ############################
 
       - name: Build Frontend Image
         run: |
           docker build \
-          -t ${{ secrets.AWS_ECR_REGISTRY }}/${{ secrets.AWS_ECR_REPOSITORY_FRONTEND }}:latest \
-          ./frontend
+            -t ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_GAR_REPOSITORY }}/dentex-frontend:latest \
+            ./frontend
 
       - name: Push Frontend Image
         run: |
           docker push \
-          ${{ secrets.AWS_ECR_REGISTRY }}/${{ secrets.AWS_ECR_REPOSITORY_FRONTEND }}:latest
+            ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_GAR_REPOSITORY }}/dentex-frontend:latest
 
       ############################
-      # Build Backend
+      # Build & Push Backend
       ############################
 
       - name: Build Backend Image
         run: |
           docker build \
-          -t ${{ secrets.AWS_ECR_REGISTRY }}/${{ secrets.AWS_ECR_REPOSITORY_BACKEND }}:latest \
-          ./backend
+            -t ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_GAR_REPOSITORY }}/dentex-backend:latest \
+            ./backend
 
       - name: Push Backend Image
         run: |
           docker push \
-          ${{ secrets.AWS_ECR_REGISTRY }}/${{ secrets.AWS_ECR_REPOSITORY_BACKEND }}:latest
+            ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_GAR_REPOSITORY }}/dentex-backend:latest
 
       ############################
-      # Deploy on EC2
+      # Deploy on GCE via SSH
       ############################
 
-      - name: SSH into EC2 and Deploy
+      - name: SSH into GCE and Deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME || 'ubuntu' }}
-          key: ${{ secrets.EC2_SSH_KEY }}
+          host: ${{ secrets.GCE_HOST }}
+          username: ${{ secrets.GCE_USERNAME || 'ubuntu' }}
+          key: ${{ secrets.GCE_SSH_KEY }}
           script: |
-            export AWS_ECR_REGISTRY="${{ secrets.AWS_ECR_REGISTRY }}"
-            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_REGISTRY }}
-            docker pull ${{ secrets.AWS_ECR_REGISTRY }}/${{ secrets.AWS_ECR_REPOSITORY_FRONTEND }}:latest
-            docker pull ${{ secrets.AWS_ECR_REGISTRY }}/${{ secrets.AWS_ECR_REPOSITORY_BACKEND }}:latest
+            export REGISTRY_URL="${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_GAR_REPOSITORY }}"
+            gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev --quiet
+            docker pull $REGISTRY_URL/dentex-frontend:latest
+            docker pull $REGISTRY_URL/dentex-backend:latest
             cd ~/Dentex
             docker compose down
             docker compose up -d
