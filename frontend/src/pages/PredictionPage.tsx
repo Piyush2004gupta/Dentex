@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import api from '../services/api';
+import api, { API_BASE_URL } from '../services/api';
 import PredictionCanvas from '../components/PredictionCanvas';
 import { 
   Camera, UploadCloud, ShieldAlert, Sparkles, AlertCircle, 
@@ -158,7 +158,7 @@ const PredictionPage: React.FC = () => {
               <div className="relative">
                 {/* YOLO Predictions overlay or simple image preview */}
                 {result ? (
-                  <PredictionCanvas imageUrl={`http://localhost:8000/api/predictions/prediction/${result.id}`} detections={result.detections} />
+                  <PredictionCanvas imageUrl={`${API_BASE_URL}/predictions/prediction/${result.id}`} detections={result.detections} />
                 ) : (
                   <img src={previewUrl} alt="Scan Upload" className="max-h-[400px] w-auto mx-auto rounded-lg block border border-slate-200 dark:border-slate-800 object-contain" />
                 )}
