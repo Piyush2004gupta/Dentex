@@ -2,42 +2,18 @@ name: Deploy to AWS
 
 on:
   workflow_run:
-    workflows: ["Continuous Integration"]
+    workflows:
+      - Continuous Integration
     types:
       - completed
 
 jobs:
-  changes:
-    name: Detect Changed Paths
+  deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    outputs:
-      frontend: ${{ steps.filter.outputs.frontend }}
-      backend: ${{ steps.filter.outputs.backend }}
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
 
-      - name: Filter Paths
-        id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            frontend:
-              - 'frontend/**'
-            backend:
-              - 'backend/**'
-
-  deploy-frontend:
-    name: Build & Deploy Frontend
-    needs: changes
-    if: ${{ needs.changes.outputs.frontend == 'true' }}
-    runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
@@ -49,71 +25,53 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Login to Amazon ECR
-        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, Tag, and Push Frontend Image
-        env:
-          ECR_REGISTRY: ${{ secrets.AWS_ECR_REGISTRY }}
-          ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY_FRONTEND }}
-          IMAGE_TAG: latest
-        run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./frontend
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      ############################
+      # Build Frontend
+      ############################
 
-      - name: Deploy Frontend via SSH
+      - name: Build Frontend Image
+        run: |
+          docker build \
+          -t ${{ secrets.AWS_ECR_REGISTRY }}/${{ secrets.AWS_ECR_REPOSITORY_FRONTEND }}:latest \
+          ./frontend
+
+      - name: Push Frontend Image
+        run: |
+          docker push \
+          ${{ secrets.AWS_ECR_REGISTRY }}/${{ secrets.AWS_ECR_REPOSITORY_FRONTEND }}:latest
+
+      ############################
+      # Build Backend
+      ############################
+
+      - name: Build Backend Image
+        run: |
+          docker build \
+          -t ${{ secrets.AWS_ECR_REGISTRY }}/${{ secrets.AWS_ECR_REPOSITORY_BACKEND }}:latest \
+          ./backend
+
+      - name: Push Backend Image
+        run: |
+          docker push \
+          ${{ secrets.AWS_ECR_REGISTRY }}/${{ secrets.AWS_ECR_REPOSITORY_BACKEND }}:latest
+
+      ############################
+      # Deploy on EC2
+      ############################
+
+      - name: SSH into EC2 and Deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME || 'ubuntu' }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd ~/Dentex
             export AWS_ECR_REGISTRY="${{ secrets.AWS_ECR_REGISTRY }}"
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_REGISTRY }}
-            docker compose pull frontend
-            docker compose up -d --no-deps frontend
-
-  deploy-backend:
-    name: Build & Deploy Backend
-    needs: changes
-    if: ${{ needs.changes.outputs.backend == 'true' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build, Tag, and Push Backend Image
-        env:
-          ECR_REGISTRY: ${{ secrets.AWS_ECR_REGISTRY }}
-          ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY_BACKEND }}
-          IMAGE_TAG: latest
-        run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-      - name: Deploy Backend via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME || 'ubuntu' }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
+            docker pull ${{ secrets.AWS_ECR_REGISTRY }}/${{ secrets.AWS_ECR_REPOSITORY_FRONTEND }}:latest
+            docker pull ${{ secrets.AWS_ECR_REGISTRY }}/${{ secrets.AWS_ECR_REPOSITORY_BACKEND }}:latest
             cd ~/Dentex
-            export AWS_ECR_REGISTRY="${{ secrets.AWS_ECR_REGISTRY }}"
-            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_REGISTRY }}
-            docker compose pull backend
-            docker compose up -d --no-deps backend
+            docker compose down
+            docker compose up -d
