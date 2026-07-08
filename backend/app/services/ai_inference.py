@@ -115,7 +115,24 @@ class AIInferenceService:
             )
 
         if HAS_KERAS and os.path.exists(self.classifier_path):
-            self.classifier_model = keras.models.load_model(self.classifier_path)
+            import keras
+            
+            @keras.saving.register_keras_serializable(name="GlorotUniform")
+            class SafeGlorotUniform(keras.initializers.GlorotUniform):
+                def __init__(self, seed=None, **kwargs):
+                    super().__init__(seed=seed)
+            
+            @keras.saving.register_keras_serializable(name="Zeros")
+            class SafeZeros(keras.initializers.Zeros):
+                def __init__(self, **kwargs):
+                    super().__init__()
+            
+            with keras.utils.custom_object_scope({
+                'GlorotUniform': SafeGlorotUniform,
+                'Zeros': SafeZeros
+            }):
+                self.classifier_model = keras.models.load_model(self.classifier_path)
+            
             print(f"✅ Loaded ResNet50 multitask model from: {self.classifier_path}")
             if hasattr(self.classifier_model, "outputs"):
                 print(f"   ↳ Output heads: {len(self.classifier_model.outputs)}")
