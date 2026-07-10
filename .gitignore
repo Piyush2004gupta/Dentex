@@ -8,8 +8,6 @@ backend/uploads/*.png
 backend/uploads/*.jpg
 .env
 data/
-backend/trained_models/*.keras
-backend/trained_models/*.pt
 node_modules/
 .venv/
 *.log
