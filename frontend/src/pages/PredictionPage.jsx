@@ -298,34 +298,7 @@ const PredictionPage = () => {
             }
 
 
-              {/* Class probabilities details */}
-              {result.class_probabilities &&
-            <div className="glass-card p-6 rounded-xl space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Disease Probabilities</h4>
-                  <div className="space-y-2">
-                    {Object.entries(result.class_probabilities).map(([className, prob]) =>
-                <div key={className} className="space-y-1">
-                        <div className="flex justify-between text-[11px] font-semibold">
-                          <span className="dark:text-slate-350">{className}</span>
-                          <span className="text-slate-400">{(prob * 100).toFixed(1)}%</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                          <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                      className === 'Caries' ? 'bg-yellow-500' :
-                      className === 'Deep Caries' ? 'bg-orange-500' :
-                      className === 'Periapical Lesion' ? 'bg-rose-500' :
-                      className === 'Impacted Tooth' ? 'bg-purple-500' :
-                      'bg-brand-500'}`
-                      }
-                      style={{ width: `${prob * 100}%` }} />
-                    
-                        </div>
-                      </div>
-                )}
-                  </div>
-                </div>
-            }
+
 
             </div> :
 
