@@ -275,20 +275,16 @@ const PredictionPage = () => {
                     </h4>
                     <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
                       {result.detections.map((det, idx) => {
-                        let qStr = `Q${det.quadrant || '?'}`;
-                        if (det.quadrant == '1') qStr += ' (Upper Right)';
-                        if (det.quadrant == '2') qStr += ' (Upper Left)';
-                        if (det.quadrant == '3') qStr += ' (Lower Left)';
-                        if (det.quadrant == '4') qStr += ' (Lower Right)';
+                        const qStr = det.quadrant || '?';
+                        const tStr = det.tooth_number || '?';
                         
                         const isHealthy = (det.label || '').toLowerCase().includes('healthy');
                         const confidence = det.classifier_confidence || det.confidence;
                         
                         return (
                           <div key={idx} className="text-xs font-mono bg-slate-50 dark:bg-slate-950/50 p-2.5 rounded border border-slate-200 dark:border-slate-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <span className="text-slate-400 shrink-0">Multitask result &rarr;</span>
-                            <span className="font-semibold text-slate-700 dark:text-slate-300 text-right">
-                              Tooth {det.tooth_number || '?'} <span className="text-slate-400 font-normal px-1">|</span> {qStr} <span className="text-slate-400 font-normal px-1">|</span> <span className={isHealthy ? 'text-emerald-500' : (det.label.includes('tooth') ? 'text-cyan-500' : 'text-rose-500')}>{det.label}</span> ({(confidence).toFixed(1)}%)
+                            <span className="font-semibold text-slate-700 dark:text-slate-300">
+                              {tStr} <span className="text-slate-400 font-normal px-1">|</span> {qStr} <span className="text-slate-400 font-normal px-1">|</span> <span className={isHealthy ? 'text-emerald-500' : (det.label.includes('tooth') ? 'text-cyan-500' : 'text-rose-500')}>{det.label}</span> ({(confidence).toFixed(1)}%)
                             </span>
                           </div>
                         )

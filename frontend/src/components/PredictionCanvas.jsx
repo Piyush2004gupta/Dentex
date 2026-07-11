@@ -36,18 +36,13 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
 
   // Helper to color-code by Quadrant instead of Disease
   const getQuadrantColors = (quadrant) => {
-    switch (String(quadrant)) {
-      case '1':
-        return { border: 'border-emerald-500 bg-emerald-500/10', hex: '#10b981' }; // Green
-      case '2':
-        return { border: 'border-rose-500 bg-rose-500/10', hex: '#f43f5e' };       // Red
-      case '3':
-        return { border: 'border-blue-500 bg-blue-500/10', hex: '#3b82f6' };      // Blue (or Purple)
-      case '4':
-        return { border: 'border-amber-500 bg-amber-500/10', hex: '#f59e0b' };    // Orange/Yellow
-      default:
-        return { border: 'border-cyan-500 bg-cyan-500/10', hex: '#06b6d4' };
-    }
+    const qStr = String(quadrant || '');
+    if (qStr.includes('1')) return { border: 'border-emerald-500 bg-emerald-500/10', hex: '#10b981' }; // Green
+    if (qStr.includes('2')) return { border: 'border-rose-500 bg-rose-500/10', hex: '#f43f5e' };       // Red
+    if (qStr.includes('3')) return { border: 'border-blue-500 bg-blue-500/10', hex: '#3b82f6' };      // Blue
+    if (qStr.includes('4')) return { border: 'border-amber-500 bg-amber-500/10', hex: '#f59e0b' };    // Orange/Yellow
+    
+    return { border: 'border-cyan-500 bg-cyan-500/10', hex: '#06b6d4' };
   };
 
   return (
@@ -107,12 +102,12 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
               height: `${height}px`
             }}>
             
-              {/* Research Paper Label (Single line, black background) */}
+              {/* Research Paper Label (Single line, no background, colored text) */}
               <div 
-                className="absolute bottom-full left-[-2px] mb-0 flex items-center bg-black/90 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold text-white z-20 whitespace-nowrap"
-                style={{ border: `1px solid ${colors.hex}`, borderBottom: 'none' }}
+                className="absolute bottom-full left-0 mb-0.5 flex items-center text-[10px] sm:text-xs font-extrabold z-20 whitespace-nowrap pointer-events-none drop-shadow-md"
+                style={{ color: colors.hex, textShadow: '0px 1px 2px rgba(0,0,0,0.8)' }}
               >
-                Q: {det.quadrant || '?'} N: {det.tooth_number || '?'}, D: {det.label}
+                Q={det.quadrant ? String(det.quadrant).replace(/\D/g, '') : '?'}, N={det.tooth_number ? String(det.tooth_number).replace(/\D/g, '') : '?'}, D={det.label}
               </div>
             </div>);
 
