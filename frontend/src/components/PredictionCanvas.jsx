@@ -41,7 +41,7 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
     if (qStr.includes('2')) return { border: 'border-rose-500 bg-rose-500/10', hex: '#f43f5e' };       // Red
     if (qStr.includes('3')) return { border: 'border-blue-500 bg-blue-500/10', hex: '#3b82f6' };      // Blue
     if (qStr.includes('4')) return { border: 'border-amber-500 bg-amber-500/10', hex: '#f59e0b' };    // Orange/Yellow
-    
+
     return { border: 'border-cyan-500 bg-cyan-500/10', hex: '#06b6d4' };
   };
 
@@ -53,19 +53,19 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
         alt="Dental Scan Preview"
         className="block max-h-[450px] w-auto object-contain select-none"
         onLoad={calculateScale} />
-      
+
       {imageLoaded && (
         <svg className="absolute top-0 left-0 w-full h-full pointer-events-none z-10">
           {detections.map((det, index) => {
             if (!det.segmentation || det.segmentation.length === 0) return null;
-            
+
             const points = det.segmentation
               .map(pt => `${pt[0] * scale.x},${pt[1] * scale.y}`)
               .join(' ');
-              
+
             const colors = getQuadrantColors(det.quadrant);
             const strokeColor = colors.hex;
-            
+
             return (
               <polygon
                 key={`poly-${index}`}
@@ -82,28 +82,28 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
       )}
 
       {imageLoaded &&
-      detections.map((det, index) => {
-        const [x, y, w, h] = det.box;
-        const left = x * scale.x;
-        const top = y * scale.y;
-        const width = w * scale.x;
-        const height = h * scale.y;
+        detections.map((det, index) => {
+          const [x, y, w, h] = det.box;
+          const left = x * scale.x;
+          const top = y * scale.y;
+          const width = w * scale.x;
+          const height = h * scale.y;
 
-        const colors = getQuadrantColors(det.quadrant);
+          const colors = getQuadrantColors(det.quadrant);
 
-        return (
-          <div
-            key={index}
-            className={`absolute border-2 transition-all duration-200 cursor-pointer ${colors.border}`}
-            style={{
-              left: `${left}px`,
-              top: `${top}px`,
-              width: `${width}px`,
-              height: `${height}px`
-            }}>
-            
+          return (
+            <div
+              key={index}
+              className={`absolute border-2 transition-all duration-200 cursor-pointer ${colors.border}`}
+              style={{
+                left: `${left}px`,
+                top: `${top}px`,
+                width: `${width}px`,
+                height: `${height}px`
+              }}>
+
               {/* Research Paper Label (Single line, no background, colored text) */}
-              <div 
+              <div
                 className="absolute bottom-full left-0 mb-0.5 flex items-center text-[10px] sm:text-xs font-extrabold z-20 whitespace-nowrap pointer-events-none drop-shadow-md"
                 style={{ color: colors.hex, textShadow: '0px 1px 2px rgba(0,0,0,0.8)' }}
               >
@@ -111,7 +111,7 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
               </div>
             </div>);
 
-      })}
+        })}
     </div>);
 
 };

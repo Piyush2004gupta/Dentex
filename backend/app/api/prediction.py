@@ -83,6 +83,10 @@ async def predict_dental_disease(
             detail="No teeth detected in the image. Please upload a clearer dental X-ray."
         )
 
+    import cv2
+    image_bgr = cv2.imread(upload_filepath)
+    img_h, img_w = image_bgr.shape[:2] if image_bgr is not None else (1000, 1000)
+
     # Classify EVERY detected tooth so the UI can color-code all of them
     for d in detections:
         box = d["box"]
@@ -94,12 +98,25 @@ async def predict_dental_disease(
             dtype, conf, probs, num, quad = _unpack_classification(
                 ai_inference_service.run_classification(crop_filepath, d["label"])
             )
+            
+            # Enforce visual quadrant override to match Dentex standard perfectly
+            cx = box[0] + box[2] / 2
+            cy = box[1] + box[3] / 2
+            if cx < img_w / 2 and cy < img_h / 2:
+                visual_quad = "Q1 (Upper Right)"
+            elif cx >= img_w / 2 and cy < img_h / 2:
+                visual_quad = "Q2 (Upper Left)"
+            elif cx >= img_w / 2 and cy >= img_h / 2:
+                visual_quad = "Q3 (Lower Left)"
+            else:
+                visual_quad = "Q4 (Lower Right)"
+                
             if dtype is not None:
                 d["label"] = dtype
                 d["classifier_confidence"] = conf
                 d["class_probabilities"] = probs
                 d["tooth_number"] = num
-                d["quadrant"] = quad
+                d["quadrant"] = visual_quad
             
             try:
                 os.remove(crop_filepath)
