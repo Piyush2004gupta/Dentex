@@ -91,7 +91,7 @@ class AIInferenceService:
         self.classifier_model = None
 
         # Paths to trained models
-        self.yolo_path       = os.path.join(settings.TRAINED_MODELS_DIR, "best.pt")
+        self.yolo_path       = os.path.join(settings.TRAINED_MODELS_DIR, "segmentation.pt")
         self.classifier_path = os.path.join(
             settings.TRAINED_MODELS_DIR, "Classification.keras"
         )
@@ -116,21 +116,8 @@ class AIInferenceService:
         if HAS_KERAS and os.path.exists(self.classifier_path):
             import keras
             
-            @keras.saving.register_keras_serializable(name="GlorotUniform")
-            class SafeGlorotUniform(keras.initializers.GlorotUniform):
-                def __init__(self, seed=None, **kwargs):
-                    super().__init__(seed=seed)
-            
-            @keras.saving.register_keras_serializable(name="Zeros")
-            class SafeZeros(keras.initializers.Zeros):
-                def __init__(self, **kwargs):
-                    super().__init__()
-            
-            with keras.utils.custom_object_scope({
-                'GlorotUniform': SafeGlorotUniform,
-                'Zeros': SafeZeros
-            }):
-                self.classifier_model = keras.models.load_model(self.classifier_path)
+            # The model file was cleaned of unsupported legacy kwargs (like input_axes/renorm)
+            self.classifier_model = keras.models.load_model(self.classifier_path)
             
             print(f"✅ Loaded ResNet50 multitask model from: {self.classifier_path}")
             if hasattr(self.classifier_model, "outputs"):
