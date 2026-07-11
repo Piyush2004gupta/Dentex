@@ -18,8 +18,7 @@ const PredictionPage = () => {
   const videoRef = useRef(null);
   const mediaStreamRef = useRef(null);
 
-  // Grad-CAM Feature State (Explainability Overlay)
-  const [showGradCam, setShowGradCam] = useState(false);
+
 
   // File Drop/Upload Handlers
   const handleFileChange = (e) => {
@@ -29,7 +28,7 @@ const PredictionPage = () => {
       setPreviewUrl(URL.createObjectURL(selected));
       setResult(null);
       setError(null);
-      setShowGradCam(false);
+
     }
   };
 
@@ -45,7 +44,7 @@ const PredictionPage = () => {
       setPreviewUrl(URL.createObjectURL(selected));
       setResult(null);
       setError(null);
-      setShowGradCam(false);
+
     }
   };
 
@@ -163,10 +162,7 @@ const PredictionPage = () => {
               <img src={previewUrl} alt="Scan Upload" className="max-h-[400px] w-auto mx-auto rounded-lg block border border-slate-200 dark:border-slate-800 object-contain" />
               }
 
-                {/* Grad-CAM Heatmap overlay simulation */}
-                {result && showGradCam &&
-              <div className="absolute inset-0 bg-gradient-to-tr from-rose-500/50 via-yellow-500/40 to-cyan-500/20 mix-blend-color-burn pointer-events-none rounded-lg animate-pulse" />
-              }
+
               </div> :
 
             <div
@@ -204,7 +200,7 @@ const PredictionPage = () => {
                     setPreviewUrl(null);
                     setResult(null);
                     setError(null);
-                    setShowGradCam(false);
+
                   }}
                   className="text-xs font-semibold text-rose-500 hover:underline">
                   
@@ -223,22 +219,7 @@ const PredictionPage = () => {
                 </button>
               }
 
-              {result &&
-              <div className="flex gap-2">
-                  {/* Grad-CAM Activator */}
-                  <button
-                  onClick={() => setShowGradCam(!showGradCam)}
-                  className={`inline-flex items-center gap-1 px-3 py-2 text-xs font-bold rounded-lg transition-all ${
-                  showGradCam ?
-                  'bg-rose-500 text-white shadow-md' :
-                  'border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`
-                  }>
-                  
-                    <Flame size={14} />
-                    <span>{showGradCam ? 'Hide Heatmap' : 'View Grad-CAM Heatmap'}</span>
-                  </button>
-                </div>
-              }
+
             </div>
 
           </div>

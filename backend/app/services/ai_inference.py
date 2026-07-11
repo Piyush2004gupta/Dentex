@@ -89,7 +89,6 @@ class AIInferenceService:
     def __init__(self):
         self.yolo_model       = None
         self.classifier_model = None
-        self.use_mock         = False  # Always use real models — no simulation
 
         # Paths to trained models
         self.yolo_path       = os.path.join(settings.TRAINED_MODELS_DIR, "best.pt")
@@ -198,11 +197,14 @@ class AIInferenceService:
         if img is None:
             raise ValueError(f"Cropped image could not be loaded: {cropped_image_path}")
 
-        # Resize to ResNet50 input (224×224) and normalise
+        from keras.applications.resnet50 import preprocess_input
+        # Resize to ResNet50 input (224×224)
         img_resized  = cv2.resize(img, (224, 224))
         img_rgb      = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
-        img_norm     = img_rgb.astype(np.float32) / 255.0
-        input_tensor = np.expand_dims(img_norm, axis=0)   # (1, 224, 224, 3)
+        
+        # Apply standard ResNet50 preprocessing instead of / 255.0
+        input_tensor = np.expand_dims(img_rgb.astype(np.float32), axis=0)
+        input_tensor = preprocess_input(input_tensor)
 
         # ── Forward pass ──────────────────────────────────────────────────
         raw_preds = self.classifier_model(input_tensor)

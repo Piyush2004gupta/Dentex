@@ -53,15 +53,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     if not token:
         raise credentials_exception
 
-    # Backwards compatibility fallback for active sessions using the mock token
-    if token == "bypass_token_smileguard":
-        from app.database.models import load_users
-        current_users = load_users()
-        user = next((u for u in current_users if u.email == "admin@smileguard.com"), None)
-        if user:
-            return user
-        raise credentials_exception
-
     payload = decode_access_token(token)
     if payload is None:
         raise credentials_exception
@@ -80,12 +71,6 @@ def get_current_user_optional(token: str = Depends(oauth2_scheme)) -> Optional[U
     if not token:
         return None
     try:
-        # Backwards compatibility fallback for active sessions using the mock token
-        if token == "bypass_token_smileguard":
-            from app.database.models import load_users
-            current_users = load_users()
-            return next((u for u in current_users if u.email == "admin@smileguard.com"), None)
-
         payload = decode_access_token(token)
         if payload is None:
             return None

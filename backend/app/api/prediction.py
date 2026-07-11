@@ -78,36 +78,36 @@ async def predict_dental_disease(
     quadrant     = None
 
     if not detections:
-        disease             = "Healthy Tooth"
-        confidence          = 99.0
-        bounding_box        = [0, 0, 0, 0]
-        class_probabilities = {"Caries": 0.01, "Deep Caries": 0.0, "Periapical Lesion": 0.0, "Impacted Tooth": 0.0}
-    else:
-        def sort_key(d):
-            return (1 if d["label"] != "Healthy Tooth" else 0, d["confidence"])
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No teeth detected in the image. Please upload a clearer dental X-ray."
+        )
 
-        selected_detection = max(detections, key=sort_key)
-        disease      = selected_detection["label"]
-        bounding_box = selected_detection["box"]
+    def sort_key(d):
+        return (1 if d["label"] != "Healthy Tooth" else 0, d["confidence"])
 
-        crop_filename = f"crop_{uuid.uuid4()}{file_extension}"
-        crop_filepath = os.path.join(settings.PREDICTION_DIR, crop_filename)
-        crop_success  = crop_detected_tooth(upload_filepath, bounding_box, crop_filepath)
+    selected_detection = max(detections, key=sort_key)
+    disease      = selected_detection["label"]
+    bounding_box = selected_detection["box"]
 
-        target_path = crop_filepath if crop_success else upload_filepath
-        disease_type, confidence, class_probabilities, tooth_number, quadrant = \
-            _unpack_classification(ai_inference_service.run_classification(target_path, disease))
+    crop_filename = f"crop_{uuid.uuid4()}{file_extension}"
+    crop_filepath = os.path.join(settings.PREDICTION_DIR, crop_filename)
+    crop_success  = crop_detected_tooth(upload_filepath, bounding_box, crop_filepath)
 
-        # Override YOLO label with Keras classifier's precise SMILEGUARD disease type
-        if disease_type is not None:
-            disease = disease_type
+    target_path = crop_filepath if crop_success else upload_filepath
+    disease_type, confidence, class_probabilities, tooth_number, quadrant = \
+        _unpack_classification(ai_inference_service.run_classification(target_path, disease))
 
-        # Clean up local cropped file after classification
-        if crop_success:
-            try:
-                os.remove(crop_filepath)
-            except Exception:
-                pass
+    # Override YOLO label with Keras classifier's precise SMILEGUARD disease type
+    if disease_type is not None:
+        disease = disease_type
+
+    # Clean up local cropped file after classification
+    if crop_success:
+        try:
+            os.remove(crop_filepath)
+        except Exception:
+            pass
 
     # Save to in-memory store
     from app.database.models import predictions_store
