@@ -83,31 +83,41 @@ async def predict_dental_disease(
             detail="No teeth detected in the image. Please upload a clearer dental X-ray."
         )
 
+    # Classify EVERY detected tooth so the UI can color-code all of them
+    for d in detections:
+        box = d["box"]
+        crop_filename = f"crop_{uuid.uuid4()}{file_extension}"
+        crop_filepath = os.path.join(settings.PREDICTION_DIR, crop_filename)
+        c_success = crop_detected_tooth(upload_filepath, box, crop_filepath)
+        
+        if c_success:
+            dtype, conf, probs, num, quad = _unpack_classification(
+                ai_inference_service.run_classification(crop_filepath, d["label"])
+            )
+            if dtype is not None:
+                d["label"] = dtype
+                d["classifier_confidence"] = conf
+                d["class_probabilities"] = probs
+                d["tooth_number"] = num
+                d["quadrant"] = quad
+            
+            try:
+                os.remove(crop_filepath)
+            except Exception:
+                pass
+
     def sort_key(d):
-        return (1 if d["label"] != "Healthy Tooth" else 0, d["confidence"])
+        return (1 if d["label"] != "Healthy Tooth" else 0, d.get("classifier_confidence", d["confidence"]))
 
     selected_detection = max(detections, key=sort_key)
     disease      = selected_detection["label"]
     bounding_box = selected_detection["box"]
+    confidence   = selected_detection.get("classifier_confidence", selected_detection["confidence"])
+    class_probabilities = selected_detection.get("class_probabilities", {})
+    tooth_number = selected_detection.get("tooth_number")
+    quadrant     = selected_detection.get("quadrant")
 
-    crop_filename = f"crop_{uuid.uuid4()}{file_extension}"
-    crop_filepath = os.path.join(settings.PREDICTION_DIR, crop_filename)
-    crop_success  = crop_detected_tooth(upload_filepath, bounding_box, crop_filepath)
 
-    target_path = crop_filepath if crop_success else upload_filepath
-    disease_type, confidence, class_probabilities, tooth_number, quadrant = \
-        _unpack_classification(ai_inference_service.run_classification(target_path, disease))
-
-    # Override YOLO label with Keras classifier's precise SMILEGUARD disease type
-    if disease_type is not None:
-        disease = disease_type
-
-    # Clean up local cropped file after classification
-    if crop_success:
-        try:
-            os.remove(crop_filepath)
-        except Exception:
-            pass
 
     # Save to in-memory store
     from app.database.models import predictions_store

@@ -267,36 +267,35 @@ const PredictionPage = () => {
                   }
                 </div>
 
-                {/* Multitask model outputs: Tooth Position + Quadrant */}
-                {(result.tooth_number || result.quadrant) &&
-                  <div className="glass-card p-5 rounded-xl">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Multitask Model Localisation</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      {result.tooth_number &&
-                        <div className="flex items-center gap-3 rounded-lg bg-brand-50/40 dark:bg-brand-950/10 p-3 border border-brand-100/40 dark:border-brand-900/20">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 dark:bg-brand-900/40 text-brand-500">
-                            <Grid3x3 size={16} />
+                {/* All Detected Teeth Results */}
+                {result.detections && result.detections.length > 0 && (
+                  <div className="glass-card p-5 rounded-xl space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                      Detailed Scan Results ({result.detections.length} detections)
+                    </h4>
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+                      {result.detections.map((det, idx) => {
+                        let qStr = `Q${det.quadrant || '?'}`;
+                        if (det.quadrant == '1') qStr += ' (Upper Right)';
+                        if (det.quadrant == '2') qStr += ' (Upper Left)';
+                        if (det.quadrant == '3') qStr += ' (Lower Left)';
+                        if (det.quadrant == '4') qStr += ' (Lower Right)';
+                        
+                        const isHealthy = (det.label || '').toLowerCase().includes('healthy');
+                        const confidence = det.classifier_confidence || det.confidence;
+                        
+                        return (
+                          <div key={idx} className="text-xs font-mono bg-slate-50 dark:bg-slate-950/50 p-2.5 rounded border border-slate-200 dark:border-slate-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <span className="text-slate-400 shrink-0">Multitask result &rarr;</span>
+                            <span className="font-semibold text-slate-700 dark:text-slate-300 text-right">
+                              Tooth {det.tooth_number || '?'} <span className="text-slate-400 font-normal px-1">|</span> {qStr} <span className="text-slate-400 font-normal px-1">|</span> <span className={isHealthy ? 'text-emerald-500' : (det.label.includes('tooth') ? 'text-cyan-500' : 'text-rose-500')}>{det.label}</span> ({(confidence).toFixed(1)}%)
+                            </span>
                           </div>
-                          <div>
-                            <p className="text-[9px] uppercase tracking-widest text-slate-400 font-bold">Enumeration</p>
-                            <p className="text-sm font-bold text-slate-800 dark:text-white">{result.tooth_number}</p>
-                          </div>
-                        </div>
-                      }
-                      {result.quadrant &&
-                        <div className="flex items-center gap-3 rounded-lg bg-cyan-50/40 dark:bg-cyan-950/10 p-3 border border-cyan-100/40 dark:border-cyan-900/20">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-100 dark:bg-cyan-900/40 text-cyan-500">
-                            <MapPin size={16} />
-                          </div>
-                          <div>
-                            <p className="text-[9px] uppercase tracking-widest text-slate-400 font-bold">Quadrant</p>
-                            <p className="text-sm font-bold text-slate-800 dark:text-white">{result.quadrant}</p>
-                          </div>
-                        </div>
-                      }
+                        )
+                      })}
                     </div>
                   </div>
-                }
+                )}
 
 
 

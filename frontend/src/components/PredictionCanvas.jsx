@@ -34,19 +34,20 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
     return () => window.removeEventListener('resize', calculateScale);
   }, []);
 
-  // Helper to color-code diseases
-  const getLabelColors = (label) => {
-    const lower = label.toLowerCase();
-    if (lower.includes('healthy')) {
-      return { border: 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500' };
+  // Helper to color-code by Quadrant instead of Disease
+  const getQuadrantColors = (quadrant) => {
+    switch (String(quadrant)) {
+      case '1':
+        return { border: 'border-emerald-500 bg-emerald-500/10', hex: '#10b981' }; // Green
+      case '2':
+        return { border: 'border-rose-500 bg-rose-500/10', hex: '#f43f5e' };       // Red
+      case '3':
+        return { border: 'border-blue-500 bg-blue-500/10', hex: '#3b82f6' };      // Blue (or Purple)
+      case '4':
+        return { border: 'border-amber-500 bg-amber-500/10', hex: '#f59e0b' };    // Orange/Yellow
+      default:
+        return { border: 'border-cyan-500 bg-cyan-500/10', hex: '#06b6d4' };
     }
-    if (lower.includes('caries') || lower.includes('cavity') || lower.includes('severe')) {
-      return { border: 'border-rose-500 bg-rose-500/10 text-rose-700 dark:text-rose-300', dot: 'bg-rose-500' };
-    }
-    if (lower.includes('gingivitis') || lower.includes('periodontitis') || lower.includes('tartar')) {
-      return { border: 'border-orange-500 bg-orange-500/10 text-orange-700 dark:text-orange-300', dot: 'bg-orange-500' };
-    }
-    return { border: 'border-cyan-500 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300', dot: 'bg-cyan-500' };
   };
 
   return (
@@ -67,14 +68,8 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
               .map(pt => `${pt[0] * scale.x},${pt[1] * scale.y}`)
               .join(' ');
               
-            const colors = getLabelColors(det.label);
-            
-            // Extract the border color to use as stroke
-            let strokeColor = '#3b82f6'; // default blue
-            if (colors.border.includes('emerald')) strokeColor = '#10b981';
-            else if (colors.border.includes('rose')) strokeColor = '#f43f5e';
-            else if (colors.border.includes('orange')) strokeColor = '#f97316';
-            else if (colors.border.includes('cyan')) strokeColor = '#06b6d4';
+            const colors = getQuadrantColors(det.quadrant);
+            const strokeColor = colors.hex;
             
             return (
               <polygon
@@ -99,12 +94,12 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
         const width = w * scale.x;
         const height = h * scale.y;
 
-        const colors = getLabelColors(det.label);
+        const colors = getQuadrantColors(det.quadrant);
 
         return (
           <div
             key={index}
-            className={`absolute border-2 rounded transition-all duration-200 group hover:ring-2 hover:ring-brand-400 cursor-pointer ${colors.border}`}
+            className={`absolute border-2 transition-all duration-200 cursor-pointer ${colors.border}`}
             style={{
               left: `${left}px`,
               top: `${top}px`,
@@ -112,11 +107,12 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
               height: `${height}px`
             }}>
             
-              {/* Tooltip Label */}
-              <div className="absolute bottom-full left-0 mb-1 hidden group-hover:flex items-center gap-1.5 rounded bg-slate-900 px-2 py-1 text-[10px] font-bold text-white shadow-md z-15 whitespace-nowrap">
-                <span className={`h-1.5 w-1.5 rounded-full ${colors.dot}`}></span>
-                <span>{det.label}</span>
-                <span className="text-slate-400">({det.confidence}%)</span>
+              {/* Research Paper Label (Single line, black background) */}
+              <div 
+                className="absolute bottom-full left-[-2px] mb-0 flex items-center bg-black/90 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold text-white z-20 whitespace-nowrap"
+                style={{ border: `1px solid ${colors.hex}`, borderBottom: 'none' }}
+              >
+                Q: {det.quadrant || '?'} N: {det.tooth_number || '?'}, D: {det.label}
               </div>
             </div>);
 
