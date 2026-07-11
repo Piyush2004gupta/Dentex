@@ -1,7 +1,0 @@
-ultralytics
-torch
-torchvision
-google-cloud-storage
-opencv-python-headless
-numpy
-pyyaml
