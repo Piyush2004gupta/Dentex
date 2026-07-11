@@ -58,6 +58,39 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
         className="block max-h-[450px] w-auto object-contain select-none"
         onLoad={calculateScale} />
       
+      {imageLoaded && (
+        <svg className="absolute top-0 left-0 w-full h-full pointer-events-none z-10">
+          {detections.map((det, index) => {
+            if (!det.segmentation || det.segmentation.length === 0) return null;
+            
+            const points = det.segmentation
+              .map(pt => `${pt[0] * scale.x},${pt[1] * scale.y}`)
+              .join(' ');
+              
+            const colors = getLabelColors(det.label);
+            
+            // Extract the border color to use as stroke
+            let strokeColor = '#3b82f6'; // default blue
+            if (colors.border.includes('emerald')) strokeColor = '#10b981';
+            else if (colors.border.includes('rose')) strokeColor = '#f43f5e';
+            else if (colors.border.includes('orange')) strokeColor = '#f97316';
+            else if (colors.border.includes('cyan')) strokeColor = '#06b6d4';
+            
+            return (
+              <polygon
+                key={`poly-${index}`}
+                points={points}
+                fill={`${strokeColor}33`} // 20% opacity
+                stroke={strokeColor}
+                strokeWidth="2"
+                strokeLinejoin="round"
+                className="transition-all duration-200 pointer-events-auto hover:fill-opacity-50 cursor-pointer"
+              />
+            );
+          })}
+        </svg>
+      )}
+
       {imageLoaded &&
       detections.map((det, index) => {
         const [x, y, w, h] = det.box;

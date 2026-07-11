@@ -147,7 +147,7 @@ class AIInferenceService:
     def run_detection(self, image_path: str):
         """
         Runs YOLOv11 detection on a dental scan.
-        Returns: [{"box": [x, y, w, h], "confidence": float, "label": str}, …]
+        Returns: [{"box": [x, y, w, h], "confidence": float, "label": str, "segmentation": [...]}, …]
         Raises RuntimeError if YOLO model is not loaded or inference fails.
         """
         if self.yolo_model is None:
@@ -156,16 +156,26 @@ class AIInferenceService:
         results    = self.yolo_model(image_path)
         detections = []
         for result in results:
-            for box in result.boxes:
+            masks = result.masks
+            for i, box in enumerate(result.boxes):
                 x1, y1, x2, y2 = box.xyxy[0].tolist()
                 conf  = float(box.conf[0])
                 cls   = int(box.cls[0])
                 label = result.names[cls]
-                detections.append({
+                
+                det = {
                     "box":        [int(x1), int(y1), int(x2 - x1), int(y2 - y1)],
                     "confidence": round(conf * 100, 2),
                     "label":      label
-                })
+                }
+                
+                if masks is not None and masks.xy is not None and i < len(masks.xy):
+                    segment = masks.xy[i]
+                    if hasattr(segment, 'tolist'):
+                        segment = segment.tolist()
+                    det["segmentation"] = [[float(pt[0]), float(pt[1])] for pt in segment]
+                    
+                detections.append(det)
         return detections
 
     # ─────────────────────────────────────────────────────────────────────────
