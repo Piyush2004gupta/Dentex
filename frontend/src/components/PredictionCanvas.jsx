@@ -90,6 +90,7 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
           const height = h * scale.y;
 
           const colors = getQuadrantColors(det.quadrant);
+          const tNum = parseInt(String(det.tooth_number).replace(/\D/g, '')) || 0;
 
           return (
             <div
@@ -103,11 +104,11 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
               }}>
 
               {/* Research Paper Label (Single line, no background, colored text) */}
-              <div
-                className="absolute bottom-full left-0 mb-0.5 flex items-center text-[10px] sm:text-xs font-extrabold z-20 whitespace-nowrap pointer-events-none drop-shadow-md"
+              <div 
+                className={`absolute ${tNum % 2 === 0 ? 'top-full mt-0.5' : 'bottom-full mb-0.5'} left-0 flex items-center text-[8px] sm:text-[9px] font-extrabold z-20 whitespace-nowrap pointer-events-none drop-shadow-md transition-all`}
                 style={{ color: colors.hex, textShadow: '0px 1px 2px rgba(0,0,0,0.8)' }}
               >
-                Q={det.quadrant ? String(det.quadrant).replace(/\D/g, '') : '?'}, N={det.tooth_number ? String(det.tooth_number).replace(/\D/g, '') : '?'}, D={det.label}
+                Q={det.quadrant ? String(det.quadrant).replace(/\D/g, '') : '?'}, N={tNum || '?'}, D={det.label}
               </div>
             </div>);
 

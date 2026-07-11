@@ -107,9 +107,9 @@ async def predict_dental_disease(
             elif cx >= img_w / 2 and cy < img_h / 2:
                 visual_quad = "Q2 (Upper Left)"
             elif cx >= img_w / 2 and cy >= img_h / 2:
-                visual_quad = "Q3 (Lower Left)"
+                visual_quad = "Q3 (Lower Right)"
             else:
-                visual_quad = "Q4 (Lower Right)"
+                visual_quad = "Q4 (Lower Left)"
                 
             if dtype is not None:
                 d["label"] = dtype
@@ -122,6 +122,33 @@ async def predict_dental_disease(
                 os.remove(crop_filepath)
             except Exception:
                 pass
+
+    # Group detections by quadrant to enforce spatial tooth numbering
+    quad_groups = {"Q1 (Upper Right)": [], "Q2 (Upper Left)": [], "Q3 (Lower Right)": [], "Q4 (Lower Left)": []}
+    for d in detections:
+        if d.get("quadrant") in quad_groups:
+            quad_groups[d["quadrant"]].append(d)
+        
+    img_mid_x = img_w / 2
+    for quad, group in quad_groups.items():
+        if not group:
+            continue
+            
+        # Get center X for sorting
+        def get_cx(d):
+            return d["box"][0] + d["box"][2] / 2
+            
+        # FDI numbering: 1 is closest to midline, 8 is furthest.
+        if "Left" in quad: # Q2 and Q4 (Right side of image, but string says Left)
+            # Distance from center increases as X goes right (increasing X)
+            sorted_group = sorted(group, key=lambda d: get_cx(d) - img_mid_x)
+        else: # Q1 and Q3
+            # Distance from center increases as X goes left (decreasing X)
+            sorted_group = sorted(group, key=lambda d: img_mid_x - get_cx(d))
+            
+        for i, d in enumerate(sorted_group):
+            # Assign tooth number 1 through 8 based on physical ordering
+            d["tooth_number"] = f"Tooth {i + 1}"
 
     def sort_key(d):
         return (1 if d["label"] != "Healthy Tooth" else 0, d.get("classifier_confidence", d["confidence"]))
