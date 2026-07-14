@@ -3,14 +3,6 @@ import React, { useRef, useState, useEffect } from 'react';
 
 
 
-
-
-
-
-
-
-
-
 const PredictionCanvas = ({ imageUrl, detections }) => {
   const containerRef = useRef(null);
   const imageRef = useRef(null);
