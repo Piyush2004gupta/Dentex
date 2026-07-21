@@ -90,34 +90,39 @@ async def predict_dental_disease(
     # Classify EVERY detected tooth so the UI can color-code all of them
     for d in detections:
         box = d["box"]
+
+        # Always assign quadrant from bounding-box position (visual logic).
+        # This must happen regardless of whether classification succeeds so
+        # that tooth_number is always filled in by the spatial grouping below.
+        cx = box[0] + box[2] / 2
+        cy = box[1] + box[3] / 2
+        if cx < img_w / 2 and cy < img_h / 2:
+            visual_quad = "Q1 (Upper Right)"
+        elif cx >= img_w / 2 and cy < img_h / 2:
+            visual_quad = "Q2 (Upper Left)"
+        elif cx >= img_w / 2 and cy >= img_h / 2:
+            visual_quad = "Q3 (Lower Right)"
+        else:
+            visual_quad = "Q4 (Lower Left)"
+        d["quadrant"] = visual_quad
+
         crop_filename = f"crop_{uuid.uuid4()}{file_extension}"
         crop_filepath = os.path.join(settings.PREDICTION_DIR, crop_filename)
         c_success = crop_detected_tooth(upload_filepath, box, crop_filepath)
-        
+
         if c_success:
             dtype, conf, probs, num, quad = _unpack_classification(
                 ai_inference_service.run_classification(crop_filepath, d["label"])
             )
-            
-            # Enforce visual quadrant override to match Dentex standard perfectly
-            cx = box[0] + box[2] / 2
-            cy = box[1] + box[3] / 2
-            if cx < img_w / 2 and cy < img_h / 2:
-                visual_quad = "Q1 (Upper Right)"
-            elif cx >= img_w / 2 and cy < img_h / 2:
-                visual_quad = "Q2 (Upper Left)"
-            elif cx >= img_w / 2 and cy >= img_h / 2:
-                visual_quad = "Q3 (Lower Right)"
-            else:
-                visual_quad = "Q4 (Lower Left)"
-                
+
             if dtype is not None:
                 d["label"] = dtype
                 d["classifier_confidence"] = conf
                 d["class_probabilities"] = probs
+                # tooth_number from classifier is a placeholder;
+                # the spatial re-numbering loop below will override it.
                 d["tooth_number"] = num
-                d["quadrant"] = visual_quad
-            
+
             try:
                 os.remove(crop_filepath)
             except Exception:

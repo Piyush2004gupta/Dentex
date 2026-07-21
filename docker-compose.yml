@@ -10,6 +10,10 @@ services:
     ports:
       - "8080:8080"
     restart: always
+    shm_size: '2gb'
+    environment:
+      - TF_FORCE_GPU_ALLOW_GROWTH=true
+      - TF_CPP_MIN_LOG_LEVEL=2
 
   frontend:
     build: ./frontend
