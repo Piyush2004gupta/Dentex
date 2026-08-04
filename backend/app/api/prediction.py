@@ -111,22 +111,25 @@ async def predict_dental_disease(
         c_success = crop_detected_tooth(upload_filepath, box, crop_filepath)
 
         if c_success:
-            dtype, conf, probs, num, quad = _unpack_classification(
-                ai_inference_service.run_classification(crop_filepath, d["label"])
-            )
-
-            if dtype is not None:
-                d["label"] = dtype
-                d["classifier_confidence"] = conf
-                d["class_probabilities"] = probs
-                # tooth_number from classifier is a placeholder;
-                # the spatial re-numbering loop below will override it.
-                d["tooth_number"] = num
-
             try:
-                os.remove(crop_filepath)
-            except Exception:
-                pass
+                dtype, conf, probs, num, quad = _unpack_classification(
+                    ai_inference_service.run_classification(crop_filepath, d["label"])
+                )
+
+                if dtype is not None:
+                    d["label"] = dtype
+                    d["classifier_confidence"] = conf
+                    d["class_probabilities"] = probs
+                    # tooth_number from classifier is a placeholder;
+                    # the spatial re-numbering loop below will override it.
+                    d["tooth_number"] = num
+            except Exception as cls_err:
+                print(f"  Warning: Classification failed for detection ({d['label']}): {cls_err}")
+            finally:
+                try:
+                    os.remove(crop_filepath)
+                except Exception:
+                    pass
 
     # Group detections by quadrant to enforce spatial tooth numbering
     quad_groups = {"Q1 (Upper Right)": [], "Q2 (Upper Left)": [], "Q3 (Lower Right)": [], "Q4 (Lower Left)": []}
@@ -154,6 +157,13 @@ async def predict_dental_disease(
         for i, d in enumerate(sorted_group):
             # Assign tooth number 1 through 8 based on physical ordering
             d["tooth_number"] = f"Tooth {i + 1}"
+
+    # Defensive fallback: ensure every detection has tooth_number and quadrant set
+    for i, d in enumerate(detections):
+        if not d.get("tooth_number"):
+            d["tooth_number"] = f"Tooth {i + 1}"
+        if not d.get("quadrant"):
+            d["quadrant"] = "Q1 (Upper Right)"
 
     def sort_key(d):
         return (1 if d["label"] != "Healthy Tooth" else 0, d.get("classifier_confidence", d["confidence"]))

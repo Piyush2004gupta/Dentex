@@ -5,8 +5,8 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 
-# Accept build-time arg and expose as env var for Vite
-ARG VITE_API_URL=https://smileguard-backend-yyncuhhvsq-el.a.run.app
+
+ARG VITE_API_URL=https://dentex-backend-735980809691.asia-south1.run.app
 ENV VITE_API_URL=${VITE_API_URL}
 
 RUN npm run build

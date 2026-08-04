@@ -26,6 +26,53 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
     return () => window.removeEventListener('resize', calculateScale);
   }, []);
 
+  // Compute quadrant + tooth numbers from box coords (works even without backend fields)
+  const enrichedDetections = React.useMemo(() => {
+    if (!detections || detections.length === 0) return [];
+    const allCx = detections.map(d => d.box[0] + d.box[2] / 2);
+    const allCy = detections.map(d => d.box[1] + d.box[3] / 2);
+    const midX = (Math.min(...allCx) + Math.max(...allCx)) / 2;
+    const midY = (Math.min(...allCy) + Math.max(...allCy)) / 2;
+
+    const resolveQuadrant = (det) => {
+      if (det.quadrant) return det.quadrant;
+      const cx = det.box[0] + det.box[2] / 2;
+      const cy = det.box[1] + det.box[3] / 2;
+      if (cx < midX && cy < midY) return 'Q1 (Upper Right)';
+      if (cx >= midX && cy < midY) return 'Q2 (Upper Left)';
+      if (cx >= midX && cy >= midY) return 'Q3 (Lower Right)';
+      return 'Q4 (Lower Left)';
+    };
+
+    const quadMap = {};
+    detections.forEach((det, i) => {
+      const q = resolveQuadrant(det);
+      if (!quadMap[q]) quadMap[q] = [];
+      quadMap[q].push({ det, i });
+    });
+
+    const toothNumbers = new Array(detections.length);
+    const quadrantLabels = new Array(detections.length);
+    Object.entries(quadMap).forEach(([q, group]) => {
+      const isLeft = q.includes('Left');
+      const sorted = [...group].sort((a, b) => {
+        const cxA = a.det.box[0] + a.det.box[2] / 2;
+        const cxB = b.det.box[0] + b.det.box[2] / 2;
+        return isLeft ? cxA - midX - (cxB - midX) : (midX - cxA) - (midX - cxB);
+      });
+      sorted.forEach(({ i }, pos) => {
+        toothNumbers[i] = `Tooth ${pos + 1}`;
+        quadrantLabels[i] = q;
+      });
+    });
+
+    return detections.map((det, i) => ({
+      ...det,
+      _quadrant: quadrantLabels[i] || det.quadrant || 'Q1 (Upper Right)',
+      _toothNumber: det.tooth_number || toothNumbers[i] || `Tooth ${i + 1}`,
+    }));
+  }, [detections]);
+
   // Helper to color-code by Quadrant instead of Disease
   const getQuadrantColors = (quadrant) => {
     const qStr = String(quadrant || '');
@@ -48,14 +95,14 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
 
       {imageLoaded && (
         <svg className="absolute top-0 left-0 w-full h-full pointer-events-none z-10">
-          {detections.map((det, index) => {
+          {enrichedDetections.map((det, index) => {
             if (!det.segmentation || det.segmentation.length === 0) return null;
 
             const points = det.segmentation
               .map(pt => `${pt[0] * scale.x},${pt[1] * scale.y}`)
               .join(' ');
 
-            const colors = getQuadrantColors(det.quadrant);
+            const colors = getQuadrantColors(det._quadrant);
             const strokeColor = colors.hex;
 
             return (
@@ -74,15 +121,15 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
       )}
 
       {imageLoaded &&
-        detections.map((det, index) => {
+        enrichedDetections.map((det, index) => {
           const [x, y, w, h] = det.box;
           const left = x * scale.x;
           const top = y * scale.y;
           const width = w * scale.x;
           const height = h * scale.y;
 
-          const colors = getQuadrantColors(det.quadrant);
-          const tNum = parseInt(String(det.tooth_number).replace(/\D/g, '')) || 0;
+          const colors = getQuadrantColors(det._quadrant);
+          const tNum = parseInt(String(det._toothNumber).replace(/\D/g, '')) || 0;
 
           return (
             <div
@@ -100,7 +147,7 @@ const PredictionCanvas = ({ imageUrl, detections }) => {
                 className={`absolute ${tNum % 2 === 0 ? 'top-full mt-0.5' : 'bottom-full mb-0.5'} left-0 flex items-center text-[8px] sm:text-[9px] font-extrabold z-20 whitespace-nowrap pointer-events-none drop-shadow-md transition-all`}
                 style={{ color: colors.hex, textShadow: '0px 1px 2px rgba(0,0,0,0.8)' }}
               >
-                Q={det.quadrant ? String(det.quadrant).replace(/\D/g, '') : '?'}, N={tNum || '?'}, D={det.label}
+                Q={det._quadrant ? String(det._quadrant).replace(/\D/g, '') : '?'}, N={tNum || '?'}, D={det.label}
               </div>
             </div>);
 

@@ -268,30 +268,85 @@ const PredictionPage = () => {
                 </div>
 
                 {/* All Detected Teeth Results */}
-                {result.detections && result.detections.length > 0 && (
-                  <div className="glass-card p-5 rounded-xl space-y-3">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                      Detailed Scan Results ({result.detections.length} detections)
-                    </h4>
-                    <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-                      {result.detections.map((det, idx) => {
-                        const qStr = det.quadrant || '?';
-                        const tStr = det.tooth_number || '?';
-                        
-                        const isHealthy = (det.label || '').toLowerCase().includes('healthy');
-                        const confidence = det.classifier_confidence || det.confidence;
-                        
-                        return (
-                          <div key={idx} className="text-xs font-mono bg-slate-50 dark:bg-slate-950/50 p-2.5 rounded border border-slate-200 dark:border-slate-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <span className="font-semibold text-slate-700 dark:text-slate-300">
-                              {tStr} <span className="text-slate-400 font-normal px-1">|</span> {qStr} <span className="text-slate-400 font-normal px-1">|</span> <span className={isHealthy ? 'text-emerald-500' : (det.label.includes('tooth') ? 'text-cyan-500' : 'text-rose-500')}>{det.label}</span> ({(confidence).toFixed(1)}%)
-                            </span>
-                          </div>
-                        )
-                      })}
+                {result.detections && result.detections.length > 0 && (() => {
+                  // Compute quadrant + tooth_number on the frontend from box coords
+                  // in case the backend version doesn't return them.
+                  const dets = result.detections;
+
+                  // Find image mid-point from bounding boxes
+                  const allCx = dets.map(d => d.box[0] + d.box[2] / 2);
+                  const allCy = dets.map(d => d.box[1] + d.box[3] / 2);
+                  const midX = (Math.min(...allCx) + Math.max(...allCx)) / 2;
+                  const midY = (Math.min(...allCy) + Math.max(...allCy)) / 2;
+
+                  // Derive quadrant from box center if not provided by backend
+                  const resolveQuadrant = (det) => {
+                    if (det.quadrant) return det.quadrant;
+                    const cx = det.box[0] + det.box[2] / 2;
+                    const cy = det.box[1] + det.box[3] / 2;
+                    if (cx < midX && cy < midY) return 'Q1 (Upper Right)';
+                    if (cx >= midX && cy < midY) return 'Q2 (Upper Left)';
+                    if (cx >= midX && cy >= midY) return 'Q3 (Lower Right)';
+                    return 'Q4 (Lower Left)';
+                  };
+
+                  // Group by quadrant, sort by distance from midline → assign tooth numbers
+                  const quadMap = {};
+                  dets.forEach((det, i) => {
+                    const q = resolveQuadrant(det);
+                    if (!quadMap[q]) quadMap[q] = [];
+                    quadMap[q].push({ det, i });
+                  });
+
+                  const toothNumbers = new Array(dets.length);
+                  const quadrantLabels = new Array(dets.length);
+                  Object.entries(quadMap).forEach(([q, group]) => {
+                    const isLeft = q.includes('Left');
+                    const sorted = [...group].sort((a, b) => {
+                      const cxA = a.det.box[0] + a.det.box[2] / 2;
+                      const cxB = b.det.box[0] + b.det.box[2] / 2;
+                      return isLeft ? cxA - midX - (cxB - midX) : (midX - cxA) - (midX - cxB);
+                    });
+                    sorted.forEach(({ i }, pos) => {
+                      toothNumbers[i] = `Tooth ${pos + 1}`;
+                      quadrantLabels[i] = q;
+                    });
+                  });
+
+                  return (
+                    <div className="glass-card p-5 rounded-xl space-y-3">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                        Detailed Scan Results ({dets.length} detections)
+                      </h4>
+                      <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+                        {dets.map((det, idx) => {
+                          const qStr = quadrantLabels[idx] || det.quadrant || 'Unknown';
+                          const tStr = det.tooth_number || toothNumbers[idx] || `Tooth ${idx + 1}`;
+                          const isHealthy = (det.label || '').toLowerCase().includes('healthy');
+                          const confidence = det.classifier_confidence || det.confidence;
+                          const labelColor = isHealthy
+                            ? 'text-emerald-500'
+                            : det.label.toLowerCase().includes('tooth')
+                              ? 'text-cyan-500'
+                              : 'text-rose-500';
+
+                          return (
+                            <div key={idx} className="text-xs font-mono bg-slate-50 dark:bg-slate-950/50 p-2.5 rounded border border-slate-200 dark:border-slate-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                {tStr}
+                                <span className="text-slate-400 font-normal px-1">|</span>
+                                {qStr}
+                                <span className="text-slate-400 font-normal px-1">|</span>
+                                <span className={labelColor}>{det.label}</span>
+                                {' '}({confidence.toFixed(1)}%)
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
 
 
