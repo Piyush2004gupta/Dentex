@@ -14,4 +14,3 @@ node_modules/
 train_*.png
 package-lock.json
 backend/backend_start.log
-backend/trained_models/
